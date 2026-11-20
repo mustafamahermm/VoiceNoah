@@ -1,0 +1,38 @@
+{
+  "engine": "elevenlabs",
+  "cloud_model": "scribe_v3",
+  "cleanup": true,
+  "cleanup_model": "claude-haiku-5-5",
+  "hotkey": "fn",
+  "model": "mlx-community/whisper-large-v3-turbo",
+  "language": null,
+  "initial_prompt": "أنا بتكلم عربي مصري و English مع بعض، يعني ممكن أقول meeting أو project أو deadline في نص الكلام.",
+  "vocabulary": [
+    "VoiceNoah",
+    "ElevenLabs",
+    "Claude",
+    "Notion",
+    "ChatGPT"
+  ],
+  "replacements": {},
+  "ignore_phrases": [
+    "Thank you.",
+    "Thanks for watching!",
+    "شكرا للمشاهدة",
+    "شكراً للمشاهدة",
+    "ترجمة نانسي قنقر",
+    "اشتركوا في القناة"
+  ],
+  "restore_clipboard": true,
+  "sounds": true,
+  "min_seconds": 0.4,
+  "type_while_speaking": true,
+  "pill_text": false,
+  "save_recordings": true,
+  "live": true,
+  "live_model": "scribe_v3_live",
+  "live_pause_secs": 0.6,
+  "polish_after_live": false,
+  "live_partials": false,
+  "pill_bottom_margin": 3
+}

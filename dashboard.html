@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoiceNoah Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f6f8; --card: #ffffff; --text: #17171c; --muted: #6b6b78; --line: #e6e6ec;
+    --accent: #4f46e5; --accent-soft: #e0e7ff; --good: #059669;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f13; --card: #18181e; --text: #f2f2f5; --muted: #9a9aa8; --line: #2a2a33;
+      --accent: #8b85ff; --accent-soft: #26244a; --good: #34d399;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 28px 28px 48px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(#2a2c38, #0b0b10);
+          display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .logo i { display: block; width: 3px; border-radius: 2px; background: #fff; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-size: 28px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stat.hero .value { color: var(--accent); }
+  .row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } main { padding: 18px 16px 40px; } }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-top: 8px; }
+  .bar { flex: 1; background: var(--accent); border-radius: 4px 4px 2px 2px; min-height: 2px; position: relative; opacity: .85; }
+  .bar.zero { background: var(--line); opacity: 1; }
+  .bar:hover { opacity: 1; }
+  .bar:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%;
+       transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 11px;
+       padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
+  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 6px; }
+  .apps .app { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-bottom: 10px; }
+  .apps .meter { grid-column: 1 / -1; height: 6px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; }
+  .apps .meter b { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .apps .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .history { margin-top: 12px; }
+  .history .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .history .top h2 { margin: 0; flex: 1; }
+  input[type=search] { width: 260px; max-width: 100%; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+       background: var(--bg); color: var(--text); font: inherit; outline: none; }
+  input[type=search]:focus { border-color: var(--accent); }
+  .day { color: var(--muted); font-size: 12px; font-weight: 600; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .item { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .item:first-of-type { border-top: 0; }
+  .item time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; padding-top: 2px; }
+  .item .t { white-space: pre-wrap; user-select: text; unicode-bidi: plaintext; }
+  .item .meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo"><i style="height:10px"></i><i style="height:18px"></i><i style="height:26px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:12px"></i></div>
+    <div><h1>VoiceNoah</h1><p id="greet">Your dictation, at a glance</p></div>
+  </header>
+
+  <section class="grid" id="stats"></section>
+
+  <section class="row">
+    <div class="card">
+      <h2>Words per day · last 30 days</h2>
+      <div class="chart" id="chart"></div>
+      <div class="axis"><span id="axisStart"></span><span>Today</span></div>
+    </div>
+    <div class="card apps">
+      <h2>Where you dictate</h2>
+      <div id="apps"></div>
+    </div>
+  </section>
+
+  <section class="card history">
+    <div class="top"><h2>History</h2><input type="search" id="q" placeholder="Search what you said…"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<script>
+const DATA = /*__DATA__*/[];
+const TYPING_WPM = 40;
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Math.round(n).toLocaleString("en-US");
+const dayKey = (d) => d.toISOString().slice(0, 10);
+const localKey = (ts) => ts.slice(0, 10);
+const today = new Date(); today.setHours(12, 0, 0, 0);
+const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })();
+
+function daysAgoKey(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function minutesText(min) {
+  if (min < 1) return `${Math.round(min * 60)} sec`;
+  if (min < 60) return `${Math.round(min)} min`;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
+const byDay = {};
+for (const r of DATA) { const k = localKey(r.ts); byDay[k] = (byDay[k] || 0) + (r.words || 0); }
+const totalWords = DATA.reduce((s, r) => s + (r.words || 0), 0);
+const totalSec = DATA.reduce((s, r) => s + (r.audio_sec || 0), 0);
+const wpm = totalSec > 0 ? totalWords / (totalSec / 60) : 0;
+const savedMin = Math.max(0, totalWords / TYPING_WPM - totalSec / 60);
+let week = 0; for (let i = 0; i < 7; i++) week += byDay[daysAgoKey(i)] || 0;
+let streak = 0; { let i = byDay[todayKey] ? 0 : 1; while (byDay[daysAgoKey(i)]) { streak++; i++; } }
+
+const stats = [
+  { label: "Today", value: fmt(byDay[todayKey] || 0), sub: "words", hero: true },
+  { label: "This week", value: fmt(week), sub: "words" },
+  { label: "All time", value: fmt(totalWords), sub: `${fmt(DATA.length)} dictations` },
+  { label: "Your speed", value: wpm ? fmt(wpm) : "–", sub: `words / min · typing ≈ ${TYPING_WPM}` },
+  { label: "Time saved", value: minutesText(savedMin), sub: "vs. typing" },
+  { label: "Streak", value: `${streak} ${streak === 1 ? "day" : "days"}`, sub: streak ? "keep it going" : "dictate today to start" },
+];
+$("stats").innerHTML = stats.map(s =>
+  `<div class="card stat${s.hero ? " hero" : ""}"><div class="label">${s.label}</div><div class="value">${s.value}</div><div class="sub">${s.sub}</div></div>`).join("");
+
+// chart: last 30 days
+const days = []; for (let i = 29; i >= 0; i--) days.push(daysAgoKey(i));
+const max = Math.max(1, ...days.map(k => byDay[k] || 0));
+$("chart").innerHTML = days.map(k => {
+  const v = byDay[k] || 0;
+  return `<div class="bar${v ? "" : " zero"}" style="height:${v ? Math.max(4, v / max * 100) : 2}%" data-tip="${k}: ${fmt(v)} words"></div>`;
+}).join("");
+$("axisStart").textContent = new Date(days[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+// apps
+const apps = {};
+for (const r of DATA) { const a = r.app || "Earlier (app not recorded)"; apps[a] = (apps[a] || 0) + (r.words || 0); }
+const appList = Object.entries(apps).sort((a, b) => b[1] - a[1]).slice(0, 7);
+const appMax = Math.max(1, ...appList.map(a => a[1]));
+$("apps").innerHTML = appList.length ? appList.map(([a, n]) =>
+  `<div class="app"><span>${esc(a)}</span><span class="n">${fmt(n)}</span><div class="meter"><b style="width:${n / appMax * 100}%"></b></div></div>`).join("")
+  : `<div class="empty">No data yet</div>`;
+
+// history
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function dayLabel(k) {
+  if (k === todayKey) return "Today";
+  if (k === daysAgoKey(1)) return "Yesterday";
+  return new Date(k + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+}
+function render(q) {
+  q = (q || "").trim().toLowerCase();
+  const rows = DATA.slice().reverse().filter(r => !q || (r.text || "").toLowerCase().includes(q)).slice(0, 400);
+  if (!rows.length) { $("list").innerHTML = `<div class="empty">${DATA.length ? "Nothing matches your search" : "Hold fn and speak. Your dictations will show up here."}</div>`; return; }
+  let html = "", last = "";
+  for (const r of rows) {
+    const k = localKey(r.ts);
+    if (k !== last) { html += `<div class="day">${dayLabel(k)}</div>`; last = k; }
+    html += `<div class="item"><time>${r.ts.slice(11, 16)}</time><div><div class="t" dir="auto">${esc(r.text)}</div>` +
+            `<div class="meta">${fmt(r.words)} words${r.app ? " · " + esc(r.app) : ""}</div></div></div>`;
+  }
+  $("list").innerHTML = html;
+}
+$("q").addEventListener("input", e => render(e.target.value));
+render("");
+</script>
+</body>
+</html>

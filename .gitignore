@@ -1,0 +1,15 @@
+# personal files: never commit
+keys.json
+config.json
+history.txt
+history.jsonl
+recordings/
+compare-report.md
+.voicenoah.lock
+# build / env
+.venv/
+__pycache__/
+app/build/
+.claude/
+.DS_Store
+social-posts.md

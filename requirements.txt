@@ -1,0 +1,10 @@
+mlx-whisper
+sounddevice
+numpy
+pyobjc-framework-Cocoa
+pyobjc-framework-Quartz
+pyobjc-framework-ApplicationServices
+anthropic
+requests
+pyobjc-framework-WebKit
+websocket-client
