@@ -3,105 +3,248 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VoiceNoah Dashboard</title>
+<title>VoiceNoah</title>
 <style>
   :root {
-    --bg: #f6f6f8; --card: #ffffff; --text: #17171c; --muted: #6b6b78; --line: #e6e6ec;
-    --accent: #4f46e5; --accent-soft: #e0e7ff; --good: #059669;
+    --bg: #f5f5f7; --side: #ececf0; --card: #ffffff; --text: #16161a; --muted: #6c6c78; --line: #e3e3ea;
+    --accent: #111114; --accent-text: #ffffff; --soft: #f0f0f4; --bar: #2b2b33; --good: #13a36b; --bad: #d64545;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f0f13; --card: #18181e; --text: #f2f2f5; --muted: #9a9aa8; --line: #2a2a33;
-      --accent: #8b85ff; --accent-soft: #26244a; --good: #34d399;
+      --bg: #101013; --side: #16161b; --card: #1b1b21; --text: #f2f2f5; --muted: #9b9ba8; --line: #2b2b34;
+      --accent: #f2f2f5; --accent-text: #111114; --soft: #23232b; --bar: #e6e6ee; --good: #3ccf8e; --bad: #ff6b6b;
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
-  main { max-width: 1040px; margin: 0 auto; padding: 28px 28px 48px; }
-  header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-  .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(#2a2c38, #0b0b10);
-          display: flex; align-items: center; justify-content: center; gap: 3px; }
-  .logo i { display: block; width: 3px; border-radius: 2px; background: #fff; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  header p { margin: 0; color: var(--muted); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); display: flex;
+         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+  aside { width: 210px; flex: none; background: var(--side); border-right: 1px solid var(--line);
+          padding: 22px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; }
+  .logo { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(#2a2c38, #0b0b10);
+          display: flex; align-items: center; justify-content: center; gap: 2px; flex: none; }
+  .logo i { display: block; width: 2.5px; border-radius: 2px; background: #fff; }
+  .brand b { font-size: 16px; letter-spacing: -0.01em; }
+  nav button { all: unset; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+               cursor: pointer; color: var(--muted); font-weight: 500; }
+  nav button:hover { background: var(--soft); color: var(--text); }
+  nav button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  nav svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .side-foot { margin-top: auto; padding: 8px 10px; color: var(--muted); font-size: 12px; }
+  main { flex: 1; overflow-y: auto; padding: 30px 34px 50px; }
+  section.page { display: none; max-width: 980px; }
+  section.page.on { display: block; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
   .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  .stat .value { font-size: 28px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .stat .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .stat.hero .value { color: var(--accent); }
+  .stat .value { font-size: 26px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .small { color: var(--muted); font-size: 12px; margin-top: 2px; }
   .row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-top: 12px; }
-  @media (max-width: 760px) { .row { grid-template-columns: 1fr; } main { padding: 18px 16px 40px; } }
-  h2 { font-size: 15px; margin: 0 0 12px; }
-  .chart { display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-top: 8px; }
-  .bar { flex: 1; background: var(--accent); border-radius: 4px 4px 2px 2px; min-height: 2px; position: relative; opacity: .85; }
-  .bar.zero { background: var(--line); opacity: 1; }
-  .bar:hover { opacity: 1; }
+  @media (max-width: 820px) { .row { grid-template-columns: 1fr; } aside { width: 64px; } .brand b, nav span, .side-foot { display: none; } }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding-top: 8px; }
+  .bar { flex: 1; background: var(--bar); border-radius: 4px 4px 2px 2px; min-height: 2px; position: relative; }
+  .bar.zero { background: var(--line); }
   .bar:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%;
        transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 11px;
-       padding: 3px 7px; border-radius: 6px; white-space: nowrap; }
+       padding: 3px 7px; border-radius: 6px; white-space: nowrap; z-index: 2; }
   .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 6px; }
-  .apps .app { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-bottom: 10px; }
-  .apps .meter { grid-column: 1 / -1; height: 6px; background: var(--accent-soft); border-radius: 3px; overflow: hidden; }
-  .apps .meter b { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
-  .apps .n { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .history { margin-top: 12px; }
-  .history .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-  .history .top h2 { margin: 0; flex: 1; }
-  input[type=search] { width: 260px; max-width: 100%; padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
-       background: var(--bg); color: var(--text); font: inherit; outline: none; }
-  input[type=search]:focus { border-color: var(--accent); }
-  .day { color: var(--muted); font-size: 12px; font-weight: 600; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
-  .item { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
-  .item:first-of-type { border-top: 0; }
+  .app { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-bottom: 10px; }
+  .meter { grid-column: 1 / -1; height: 5px; background: var(--soft); border-radius: 3px; overflow: hidden; }
+  .meter b { display: block; height: 100%; background: var(--bar); }
+  .muted { color: var(--muted); }
+  .tip { display: flex; gap: 14px; align-items: center; margin-top: 12px; }
+  kbd { display: inline-block; padding: 2px 8px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+        background: var(--card); font: 600 12px -apple-system, "Segoe UI", sans-serif; }
+  input[type=search], input[type=text], input[type=password], select {
+       padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+       font: inherit; outline: none; }
+  input:focus, select:focus { border-color: var(--muted); }
+  .btn { all: unset; cursor: pointer; padding: 9px 16px; border-radius: 9px; background: var(--accent); color: var(--accent-text);
+         font-weight: 600; font-size: 13px; text-align: center; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn:active { opacity: .8; }
+  .day { color: var(--muted); font-size: 12px; font-weight: 600; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .item { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); }
   .item time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; padding-top: 2px; }
-  .item .t { white-space: pre-wrap; user-select: text; unicode-bidi: plaintext; }
+  .item .t { white-space: pre-wrap; unicode-bidi: plaintext; user-select: text; }
   .item .meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .copy { all: unset; cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 6px; border-radius: 6px; height: fit-content; }
+  .copy:hover { background: var(--soft); color: var(--text); }
   .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .set { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); }
+  .set:first-of-type { border-top: 0; padding-top: 4px; }
+  .set .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .keyrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  .keyrow input { flex: 1; min-width: 220px; }
+  .ok { color: var(--good); font-size: 13px; } .err { color: var(--bad); font-size: 13px; }
+  .switch { position: relative; width: 42px; height: 24px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span { position: absolute; inset: 0; background: var(--line); border-radius: 12px; cursor: pointer; transition: .2s; }
+  .switch span::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%;
+                          background: #fff; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .switch input:checked + span { background: var(--good); }
+  .switch input:checked + span::before { transform: translateX(18px); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; border-radius: 99px; background: var(--soft);
+          border: 1px solid var(--line); }
+  .chip button { all: unset; cursor: pointer; width: 18px; height: 18px; text-align: center; border-radius: 50%; color: var(--muted); }
+  .chip button:hover { background: var(--line); color: var(--text); }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0 0; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 14px 38px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -1px; width: 26px; height: 26px; border-radius: 50%;
+                      background: var(--accent); color: var(--accent-text); font-weight: 700; font-size: 13px;
+                      display: flex; align-items: center; justify-content: center; }
+  .banner { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+  a { color: inherit; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+           padding: 8px 16px; border-radius: 99px; font-size: 13px; opacity: 0; transition: .25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
+<aside>
+  <div class="brand">
+    <div class="logo"><i style="height:8px"></i><i style="height:14px"></i><i style="height:20px"></i><i style="height:12px"></i><i style="height:17px"></i><i style="height:9px"></i></div>
+    <b>VoiceNoah</b>
+  </div>
+  <nav>
+    <button data-page="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></button>
+    <button data-page="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>History</span></button>
+    <button data-page="dictionary"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg><span>Dictionary</span></button>
+    <button data-page="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
+  </nav>
+  <div class="side-foot" id="ver"></div>
+</aside>
+
 <main>
-  <header>
-    <div class="logo"><i style="height:10px"></i><i style="height:18px"></i><i style="height:26px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:12px"></i></div>
-    <div><h1>VoiceNoah</h1><p id="greet">Your dictation, at a glance</p></div>
-  </header>
-
-  <section class="grid" id="stats"></section>
-
-  <section class="row">
-    <div class="card">
-      <h2>Words per day · last 30 days</h2>
-      <div class="chart" id="chart"></div>
-      <div class="axis"><span id="axisStart"></span><span>Today</span></div>
+  <!-- HOME -->
+  <section class="page on" id="page-home">
+    <div id="setup"></div>
+    <h1 id="hello">Speak. VoiceNoah writes.</h1>
+    <p class="sub" id="tagline">Talk the way you think, in Arabic, English or both. VoiceNoah turns it into clean text in any app.</p>
+    <div class="grid" id="stats"></div>
+    <div class="row">
+      <div class="card">
+        <h2>Words per day · last 30 days</h2>
+        <div class="chart" id="chart"></div>
+        <div class="axis"><span id="axisStart"></span><span>Today</span></div>
+      </div>
+      <div class="card">
+        <h2>Where you dictate</h2>
+        <div id="apps"></div>
+      </div>
     </div>
-    <div class="card apps">
-      <h2>Where you dictate</h2>
-      <div id="apps"></div>
+    <div class="card" style="margin-top:12px">
+      <h2>How to use it</h2>
+      <div class="tip"><kbd id="hk1">fn</kbd><span>Hold, speak, let go. Your words are typed wherever your cursor is.</span></div>
+      <div class="tip"><kbd id="hk2">fn</kbd><span class="muted">tap once</span><span>Hands-free: talk as long as you like, tap again to finish.</span></div>
+      <div class="tip"><kbd>esc</kbd><span>Cancel while recording.</span></div>
     </div>
   </section>
 
-  <section class="card history">
-    <div class="top"><h2>History</h2><input type="search" id="q" placeholder="Search what you said…"></div>
+  <!-- HISTORY -->
+  <section class="page" id="page-history">
+    <h1>History</h1>
+    <p class="sub">Everything you dictated, saved only on this computer.</p>
+    <input type="search" id="q" placeholder="Search what you said…" style="width:320px;max-width:100%">
     <div id="list"></div>
   </section>
+
+  <!-- DICTIONARY -->
+  <section class="page" id="page-dictionary">
+    <h1>Dictionary</h1>
+    <p class="sub">Names, brands and terms you say often, so VoiceNoah spells them right.</p>
+    <div class="card">
+      <h2>Words</h2>
+      <div class="keyrow"><input type="text" id="newWord" placeholder="Add a word or name, e.g. ElevenLabs"><button class="btn" id="addWord">Add</button></div>
+      <div class="chips" id="words"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>Always replace</h2>
+      <p class="muted" style="margin:0">If a word keeps coming out wrong, tell VoiceNoah what it should be.</p>
+      <div class="keyrow"><input type="text" id="repFrom" placeholder="Wrong"><input type="text" id="repTo" placeholder="Right"><button class="btn" id="addRep">Add</button></div>
+      <div class="chips" id="reps"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="page" id="page-settings">
+    <h1>Settings</h1>
+    <p class="sub">Your keys and choices are stored only on this computer.</p>
+
+    <div class="card">
+      <h2>Speech engine · ElevenLabs <span class="muted" style="font-weight:400">(required)</span></h2>
+      <div class="muted" id="elStatus"></div>
+      <div class="keyrow"><input type="password" id="elKey" placeholder="Paste your ElevenLabs API key (sk_…)"><button class="btn" data-save="elevenlabs">Save & test</button></div>
+      <div id="elNote"></div>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">No key yet? <a href="#" data-url="https://elevenlabs.io/app/developers/api-keys">Create one on ElevenLabs</a> → Create Key → set <b>Speech to Text</b> to Access → copy it here.</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Text polish · Claude <span class="muted" style="font-weight:400">(optional)</span></h2>
+      <div class="muted" id="anStatus"></div>
+      <div class="keyrow"><input type="password" id="anKey" placeholder="Paste your Anthropic API key (sk-ant-…)"><button class="btn" data-save="anthropic">Save & test</button></div>
+      <div id="anNote"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="set"><div><b>Shortcut</b><div class="d">Hold it to talk. Tap it once for hands-free.</div></div><select id="hotkey"></select></div>
+      <div class="set"><div><b>Type as you speak</b><div class="d">Each sentence appears as soon as you pause.</div></div><label class="switch"><input type="checkbox" id="live"><span></span></label></div>
+      <div class="set"><div><b>Polish with Claude</b><div class="d">Fix punctuation and remove fillers with AI after you finish (needs the Claude key).</div></div><label class="switch"><input type="checkbox" id="polish"><span></span></label></div>
+      <div class="set"><div><b>Sounds</b><div class="d">A soft click when recording starts and stops.</div></div><label class="switch"><input type="checkbox" id="sounds"><span></span></label></div>
+      <div class="set"><div><b>Open at login</b><div class="d">Start VoiceNoah quietly when you sign in.</div></div><label class="switch"><input type="checkbox" id="login"><span></span></label></div>
+      <div class="set" id="permRow"><div><b>Accessibility permission</b><div class="d" id="permText"></div></div><button class="btn ghost" id="permBtn">Open settings</button></div>
+    </div>
+  </section>
 </main>
+<div class="toast" id="toast"></div>
 
 <script>
-const DATA = /*__DATA__*/[];
+let S = /*__STATE__*/null;
 const TYPING_WPM = 40;
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
-const dayKey = (d) => d.toISOString().slice(0, 10);
-const localKey = (ts) => ts.slice(0, 10);
-const today = new Date(); today.setHours(12, 0, 0, 0);
-const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })();
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function daysAgoKey(n) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function send(msg) {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.vn) {
+    window.webkit.messageHandlers.vn.postMessage(JSON.stringify(msg));
+  } else if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.call(msg).then(r => { if (r) [].concat(r).forEach(vnReceive); });
+  }
 }
+window.addEventListener("pywebviewready", () => send({ type: "getState" }));
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 1800); }
+
+window.vnReceive = function (m) {
+  if (!m) return;
+  if (m.type === "state") { S = m; render(); }
+  else if (m.type === "keyResult") {
+    const el = $(m.name === "elevenlabs" ? "elNote" : "anNote");
+    el.className = m.ok ? "ok" : "err"; el.textContent = m.ok ? "✓ " + m.note : "✗ " + m.note;
+    if (m.ok) { $(m.name === "elevenlabs" ? "elKey" : "anKey").value = ""; toast("Key saved"); }
+  }
+  else if (m.type === "saved") toast("Saved");
+  else if (m.type === "goto") go(m.page);
+};
+
+// navigation
+function go(page) {
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.page === page));
+  document.querySelectorAll("section.page").forEach(s => s.classList.toggle("on", s.id === "page-" + page));
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => go(b.dataset.page));
+document.addEventListener("click", e => { const a = e.target.closest("[data-url]"); if (a) { e.preventDefault(); send({ type: "openURL", url: a.dataset.url }); } });
+
+// dates
+const pad = (n) => String(n).padStart(2, "0");
+const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return keyOf(d); };
+const todayKey = daysAgo(0);
 function minutesText(min) {
   if (min < 1) return `${Math.round(min * 60)} sec`;
   if (min < 60) return `${Math.round(min)} min`;
@@ -109,66 +252,130 @@ function minutesText(min) {
   return m ? `${h} h ${m} min` : `${h} h`;
 }
 
-const byDay = {};
-for (const r of DATA) { const k = localKey(r.ts); byDay[k] = (byDay[k] || 0) + (r.words || 0); }
-const totalWords = DATA.reduce((s, r) => s + (r.words || 0), 0);
-const totalSec = DATA.reduce((s, r) => s + (r.audio_sec || 0), 0);
-const wpm = totalSec > 0 ? totalWords / (totalSec / 60) : 0;
-const savedMin = Math.max(0, totalWords / TYPING_WPM - totalSec / 60);
-let week = 0; for (let i = 0; i < 7; i++) week += byDay[daysAgoKey(i)] || 0;
-let streak = 0; { let i = byDay[todayKey] ? 0 : 1; while (byDay[daysAgoKey(i)]) { streak++; i++; } }
+function render() {
+  if (!S) return;
+  const data = S.stats || [], st = S.settings || {};
+  $("ver").textContent = `Version ${S.version || ""}`;
+  const hkName = (S.hotkeys || []).find(h => h[0] === st.hotkey);
+  $("hk1").textContent = $("hk2").textContent = hkName ? hkName[1] : st.hotkey;
 
-const stats = [
-  { label: "Today", value: fmt(byDay[todayKey] || 0), sub: "words", hero: true },
-  { label: "This week", value: fmt(week), sub: "words" },
-  { label: "All time", value: fmt(totalWords), sub: `${fmt(DATA.length)} dictations` },
-  { label: "Your speed", value: wpm ? fmt(wpm) : "–", sub: `words / min · typing ≈ ${TYPING_WPM}` },
-  { label: "Time saved", value: minutesText(savedMin), sub: "vs. typing" },
-  { label: "Streak", value: `${streak} ${streak === 1 ? "day" : "days"}`, sub: streak ? "keep it going" : "dictate today to start" },
-];
-$("stats").innerHTML = stats.map(s =>
-  `<div class="card stat${s.hero ? " hero" : ""}"><div class="label">${s.label}</div><div class="value">${s.value}</div><div class="sub">${s.sub}</div></div>`).join("");
+  // setup banner when the engine key is missing
+  $("setup").innerHTML = S.keys && S.keys.elevenlabs ? "" : `
+    <div class="banner"><h2 style="font-size:17px">Welcome! Two minutes to get started</h2>
+    <ol class="steps">
+      <li>Create a free account on <a href="#" data-url="https://elevenlabs.io/app/sign-up">ElevenLabs</a>.</li>
+      <li>Open <a href="#" data-url="https://elevenlabs.io/app/developers/api-keys">Developers → API keys</a>, click <b>Create Key</b>, set <b>Speech to Text</b> to <b>Access</b>, and copy the key.</li>
+      <li>Paste it in <a href="#" onclick="go('settings');return false">Settings</a> and click <b>Save &amp; test</b>.</li>
+      ${S.platform === "mac" ? "<li>Allow <b>Accessibility</b> and <b>Microphone</b> for VoiceNoah when macOS asks.</li>" : ""}
+    </ol></div>`;
 
-// chart: last 30 days
-const days = []; for (let i = 29; i >= 0; i--) days.push(daysAgoKey(i));
-const max = Math.max(1, ...days.map(k => byDay[k] || 0));
-$("chart").innerHTML = days.map(k => {
-  const v = byDay[k] || 0;
-  return `<div class="bar${v ? "" : " zero"}" style="height:${v ? Math.max(4, v / max * 100) : 2}%" data-tip="${k}: ${fmt(v)} words"></div>`;
-}).join("");
-$("axisStart").textContent = new Date(days[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  // stats
+  const byDay = {};
+  for (const r of data) { const k = (r.ts || "").slice(0, 10); byDay[k] = (byDay[k] || 0) + (r.words || 0); }
+  const total = data.reduce((s, r) => s + (r.words || 0), 0);
+  const secs = data.reduce((s, r) => s + (r.audio_sec || 0), 0);
+  const wpm = secs > 0 ? total / (secs / 60) : 0;
+  const saved = Math.max(0, total / TYPING_WPM - secs / 60);
+  let week = 0; for (let i = 0; i < 7; i++) week += byDay[daysAgo(i)] || 0;
+  let streak = 0; { let i = byDay[todayKey] ? 0 : 1; while (byDay[daysAgo(i)]) { streak++; i++; } }
+  const faster = wpm ? (wpm / TYPING_WPM) : 0;
+  $("hello").textContent = total ? `You've written ${fmt(total)} words by voice` : "Speak. VoiceNoah writes.";
+  $("tagline").textContent = total
+    ? `That's about ${minutesText(saved)} saved${faster > 1 ? `, ${faster.toFixed(1)}× faster than typing` : ""}. Keep talking.`
+    : "Talk the way you think, in Arabic, English or both. VoiceNoah turns it into clean text in any app.";
+  const cards = [
+    ["Today", fmt(byDay[todayKey] || 0), "words"],
+    ["This week", fmt(week), "words"],
+    ["Your speed", wpm ? fmt(wpm) : "–", `words / min · typing ≈ ${TYPING_WPM}`],
+    ["Time saved", minutesText(saved), "vs. typing"],
+    ["Streak", `${streak} ${streak === 1 ? "day" : "days"}`, streak ? "keep it going" : "dictate today to start"],
+  ];
+  $("stats").innerHTML = cards.map(c => `<div class="card stat"><div class="label">${c[0]}</div><div class="value">${c[1]}</div><div class="small">${c[2]}</div></div>`).join("");
 
-// apps
-const apps = {};
-for (const r of DATA) { const a = r.app || "Earlier (app not recorded)"; apps[a] = (apps[a] || 0) + (r.words || 0); }
-const appList = Object.entries(apps).sort((a, b) => b[1] - a[1]).slice(0, 7);
-const appMax = Math.max(1, ...appList.map(a => a[1]));
-$("apps").innerHTML = appList.length ? appList.map(([a, n]) =>
-  `<div class="app"><span>${esc(a)}</span><span class="n">${fmt(n)}</span><div class="meter"><b style="width:${n / appMax * 100}%"></b></div></div>`).join("")
-  : `<div class="empty">No data yet</div>`;
+  const days = []; for (let i = 29; i >= 0; i--) days.push(daysAgo(i));
+  const max = Math.max(1, ...days.map(k => byDay[k] || 0));
+  $("chart").innerHTML = days.map(k => { const v = byDay[k] || 0;
+    return `<div class="bar${v ? "" : " zero"}" style="height:${v ? Math.max(4, v / max * 100) : 2}%" data-tip="${k}: ${fmt(v)} words"></div>`; }).join("");
+  $("axisStart").textContent = new Date(days[0] + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-// history
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+  const apps = {};
+  for (const r of data) { const a = r.app || "Earlier"; apps[a] = (apps[a] || 0) + (r.words || 0); }
+  const list = Object.entries(apps).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const am = Math.max(1, ...list.map(a => a[1]));
+  $("apps").innerHTML = list.length ? list.map(([a, n]) => `<div class="app"><span>${esc(a)}</span><span class="muted">${fmt(n)}</span><div class="meter"><b style="width:${n / am * 100}%"></b></div></div>`).join("") : `<div class="empty">No data yet</div>`;
+
+  renderHistory($("q").value);
+  renderDictionary();
+  renderSettings();
+}
+
 function dayLabel(k) {
   if (k === todayKey) return "Today";
-  if (k === daysAgoKey(1)) return "Yesterday";
+  if (k === daysAgo(1)) return "Yesterday";
   return new Date(k + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
 }
-function render(q) {
+function renderHistory(q) {
+  const data = (S && S.stats) || [];
   q = (q || "").trim().toLowerCase();
-  const rows = DATA.slice().reverse().filter(r => !q || (r.text || "").toLowerCase().includes(q)).slice(0, 400);
-  if (!rows.length) { $("list").innerHTML = `<div class="empty">${DATA.length ? "Nothing matches your search" : "Hold fn and speak. Your dictations will show up here."}</div>`; return; }
+  const rows = data.slice().reverse().filter(r => !q || (r.text || "").toLowerCase().includes(q)).slice(0, 500);
+  if (!rows.length) { $("list").innerHTML = `<div class="empty">${data.length ? "Nothing matches your search" : "Your dictations will show up here."}</div>`; return; }
   let html = "", last = "";
-  for (const r of rows) {
-    const k = localKey(r.ts);
+  rows.forEach((r, i) => {
+    const k = (r.ts || "").slice(0, 10);
     if (k !== last) { html += `<div class="day">${dayLabel(k)}</div>`; last = k; }
-    html += `<div class="item"><time>${r.ts.slice(11, 16)}</time><div><div class="t" dir="auto">${esc(r.text)}</div>` +
-            `<div class="meta">${fmt(r.words)} words${r.app ? " · " + esc(r.app) : ""}</div></div></div>`;
-  }
+    html += `<div class="item"><time>${(r.ts || "").slice(11, 16)}</time><div><div class="t" dir="auto">${esc(r.text)}</div>` +
+            `<div class="meta">${fmt(r.words)} words${r.app ? " · " + esc(r.app) : ""}</div></div><button class="copy" data-i="${i}">Copy</button></div>`;
+  });
   $("list").innerHTML = html;
+  $("list").querySelectorAll(".copy").forEach(b => b.onclick = () => {
+    const t = rows[+b.dataset.i].text;
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast("Copied"), () => {
+      const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast("Copied");
+    });
+  });
 }
-$("q").addEventListener("input", e => render(e.target.value));
-render("");
+$("q").addEventListener("input", e => renderHistory(e.target.value));
+
+// dictionary
+function saveSettings(obj) { send({ type: "saveSettings", settings: obj }); Object.assign(S.settings, obj); }
+function renderDictionary() {
+  const st = S.settings;
+  $("words").innerHTML = (st.vocabulary || []).map((w, i) => `<span class="chip" dir="auto">${esc(w)}<button data-w="${i}" title="Remove">×</button></span>`).join("") || `<span class="muted">No words yet</span>`;
+  $("words").querySelectorAll("button").forEach(b => b.onclick = () => { const v = st.vocabulary.slice(); v.splice(+b.dataset.w, 1); saveSettings({ vocabulary: v }); renderDictionary(); });
+  const reps = Object.entries(st.replacements || {});
+  $("reps").innerHTML = reps.map(([a, b]) => `<span class="chip" dir="auto">${esc(a)} → ${esc(b)}<button data-r="${esc(a)}" title="Remove">×</button></span>`).join("") || `<span class="muted">Nothing yet</span>`;
+  $("reps").querySelectorAll("button").forEach(b => b.onclick = () => { const r = { ...st.replacements }; delete r[b.dataset.r]; saveSettings({ replacements: r }); renderDictionary(); });
+}
+$("addWord").onclick = () => { const w = $("newWord").value.trim(); if (!w) return; saveSettings({ vocabulary: [...(S.settings.vocabulary || []), w] }); $("newWord").value = ""; renderDictionary(); };
+$("newWord").onkeydown = e => { if (e.key === "Enter") $("addWord").click(); };
+$("addRep").onclick = () => { const a = $("repFrom").value.trim(), b = $("repTo").value.trim(); if (!a || !b) return;
+  saveSettings({ replacements: { ...(S.settings.replacements || {}), [a]: b } }); $("repFrom").value = $("repTo").value = ""; renderDictionary(); };
+
+// settings
+function renderSettings() {
+  const st = S.settings, k = S.keys || {};
+  $("elStatus").innerHTML = k.elevenlabs ? `<span class="ok">● Connected</span> · key ending in …${esc(k.elevenlabs)}` : `<span class="err">● Not set</span>`;
+  $("anStatus").innerHTML = k.anthropic ? `<span class="ok">● Connected</span> · key ending in …${esc(k.anthropic)}` : `<span class="muted">● Not set</span>`;
+  $("hotkey").innerHTML = (S.hotkeys || []).map(h => `<option value="${h[0]}" ${h[0] === st.hotkey ? "selected" : ""}>${esc(h[1])}</option>`).join("");
+  $("live").checked = !!st.live; $("polish").checked = !!st.polish_after_live; $("sounds").checked = !!st.sounds; $("login").checked = !!st.login;
+  const perm = S.permissions || {};
+  $("permRow").style.display = S.platform === "mac" ? "" : "none";
+  $("permText").innerHTML = perm.accessibility ? `<span class="ok">Allowed</span>, the shortcut works.` : `<span class="err">Not allowed yet.</span> Needed so VoiceNoah can hear the shortcut and type for you.`;
+}
+document.querySelectorAll("[data-save]").forEach(b => b.onclick = () => {
+  const name = b.dataset.save, input = $(name === "elevenlabs" ? "elKey" : "anKey"), note = $(name === "elevenlabs" ? "elNote" : "anNote");
+  if (!input.value.trim()) { note.className = "err"; note.textContent = "Paste the key first."; return; }
+  note.className = "muted"; note.textContent = "Checking the key…";
+  send({ type: "saveKey", name, value: input.value.trim() });
+});
+$("hotkey").onchange = e => saveSettings({ hotkey: e.target.value });
+$("live").onchange = e => saveSettings({ live: e.target.checked });
+$("polish").onchange = e => saveSettings({ polish_after_live: e.target.checked, cleanup: e.target.checked || S.settings.cleanup });
+$("sounds").onchange = e => saveSettings({ sounds: e.target.checked });
+$("login").onchange = e => saveSettings({ login: e.target.checked });
+$("permBtn").onclick = () => send({ type: "openPermissions" });
+
+render();
 </script>
 </body>
 </html>

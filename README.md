@@ -1,124 +1,129 @@
-<p align="center"><img src="assets/VoiceNoah-icon.png" width="128" alt="VoiceNoah icon"></p>
+<p align="center"><img src="assets/VoiceNoah-icon.png" width="120" alt="VoiceNoah"></p>
 
 <h1 align="center">VoiceNoah</h1>
-<p align="center"><b>Voice dictation for macOS that actually understands Egyptian Arabic mixed with English.</b><br>
-Hold <kbd>fn</kbd>, speak, let go. The text is typed into any app.</p>
+
+<p align="center"><b>Stop typing. Start talking.</b><br>
+Speak naturally, in Arabic, English or both in the same sentence, and VoiceNoah writes it as clean text in any app on your computer.</p>
+
+<p align="center">
+  <a href="https://github.com/mustafamahermm/VoiceNoah/releases/latest"><b>⬇️ Download for Mac (.dmg)</b></a> &nbsp;·&nbsp;
+  <a href="https://github.com/mustafamahermm/VoiceNoah/releases/latest"><b>⬇️ Download for Windows (.exe)</b></a>
+</p>
 
 ---
 
-## The problem
+## Why VoiceNoah
 
-Most dictation tools are good at English, or at Modern Standard Arabic, but not at the way many of us actually talk:
-**Egyptian Arabic with English words in the middle of the sentence** ("عايز أعمل meeting بكرة عشان نراجع الـ deadline").
-They write the English words in Arabic letters, mix up the dialect, and have monthly word limits.
+You think faster than you type. Most people type around **40 words a minute** but speak at **130 to 150**.
+VoiceNoah lets you write at the speed you talk: emails, messages, documents, notes, prompts for ChatGPT and Claude, all by voice.
 
-## What VoiceNoah does
+And it was built for the way millions of us really speak. Most dictation tools fall apart the moment you mix languages:
+*"عايز أعمل meeting بكرة عشان نراجع الـ deadline"* comes out with the English words in Arabic letters, or "corrected" into formal Arabic, or wrong.
+VoiceNoah keeps **Egyptian Arabic as Egyptian** and **English as English**, in the same sentence.
 
-- **Hold `fn` and talk** in any app: Notion, Chrome, Slack, WhatsApp, ChatGPT, Claude, Word...
-- **Egyptian Arabic + English in the same sentence.** English words stay in English, Arabic stays Egyptian.
-- **Cleans up the text**: filler sounds ("umm", "آآ") are removed while typing; optional Claude polish removes "umm" and "آآ", fixes punctuation, and applies self-corrections ("الساعة تلاتة… لأ قصدي أربعة" → "الساعة أربعة").
-- **Types while you talk.** Audio streams live to ElevenLabs Scribe v3 Live; each sentence is typed into your app as soon as you pause, and the last one appears about half a second after you let go.
-- **Dashboard** with your stats: words today/this week, speaking speed, time saved vs. typing, streak, which apps you dictate in, and a searchable history.
-- **Quick tap on `fn`** = hands-free mode for long dictation; **Esc** cancels.
-- Lives in the **menu bar**; a small black pill peeks from the bottom edge of the screen only while you speak.
-- **No subscription.** You use your own API keys and pay only for what you use (free tiers are usually enough).
+## What it does
 
-| Part | What it uses |
+- **Works in every app.** Notion, Gmail, Slack, WhatsApp, Word, ChatGPT, Claude, your code editor. If it has a text box, VoiceNoah can write in it.
+- **Types while you talk.** Your words stream live, and each sentence lands in the text box as soon as you pause. When you let go, the last words appear in about half a second.
+- **Writes clean text.** Filler sounds ("umm", "آآ") are removed. With the optional AI polish, punctuation is fixed and self-corrections are applied: *"at 3… no, I mean 4"* becomes *"at 4"*.
+- **Mixed languages, one sentence.** Arabic and English together, no switching, no settings.
+- **Learns your words.** Add names, brands and terms to your dictionary so they're always spelled right.
+- **Shows your progress.** A dashboard with words per day, your speaking speed, time saved compared with typing, your streak, and a searchable history.
+- **Stays out of the way.** A small black pill appears at the bottom of the screen only while you speak.
+- **No subscription.** You use your own keys and pay only for what you use. The ElevenLabs free plan covers about 2.5 hours of dictation a month.
+- **Private by design.** Your history and keys stay on your computer. Audio is sent to ElevenLabs only while you hold the shortcut.
+
+## How it works
+
+| | Mac | Windows |
+|---|---|---|
+| Talk | Hold **fn** and speak | Hold **Right Ctrl** and speak |
+| Let go | Your words are typed where your cursor is | Same |
+| Long dictation | Tap the shortcut once for hands-free, tap again to finish | Same |
+| Cancel | **Esc** | **Esc** |
+
+You can change the shortcut in **Settings**.
+
+## Get started (2 minutes)
+
+### 1. Install
+
+**Mac** (Apple Silicon, M1 or newer)
+1. Download `VoiceNoah-…-mac.dmg` from the [latest release](https://github.com/mustafamahermm/VoiceNoah/releases/latest) and open it.
+2. Drag **VoiceNoah** into **Applications**.
+3. The first time only: in Applications, **right-click VoiceNoah → Open → Open**. macOS asks this because the app is free and not from the App Store. If it still refuses, go to System Settings → Privacy & Security → **Open Anyway**.
+4. Allow **Accessibility** and **Microphone** for VoiceNoah when macOS asks.
+5. System Settings → Keyboard → **"Press 🌐 key to"** → **Do Nothing**, so `fn` doesn't open the emoji picker.
+
+**Windows** (10 or 11)
+1. Download `VoiceNoah-…-windows.exe` from the [latest release](https://github.com/mustafamahermm/VoiceNoah/releases/latest) and double-click it.
+2. If Windows SmartScreen appears: **More info → Run anyway** (the app is free and not signed by Microsoft).
+3. VoiceNoah appears in the system tray (bottom-right, near the clock).
+
+> The Windows version is brand new. If something does not work, please [open an issue](https://github.com/mustafamahermm/VoiceNoah/issues).
+
+### 2. Connect the speech engine (free)
+
+1. Create a free account on [ElevenLabs](https://elevenlabs.io/app/sign-up).
+2. Open **Developers → [API keys](https://elevenlabs.io/app/developers/api-keys)** → **Create Key**.
+3. Name it `VoiceNoah`, set **Speech to Text → Access**, leave everything else on **No Access**, and click **Create Key**.
+4. **Copy the key right away** (it starts with `sk_` and is shown only once).
+5. In the VoiceNoah window: **Settings → paste the key → Save & test**. You'll see ✓ Works.
+
+That's it. Put your cursor in any text box, hold the shortcut and talk.
+
+### Optional: AI polish with Claude
+
+For perfectly punctuated, edited text, add an Anthropic API key: [platform.claude.com](https://platform.claude.com) → Settings → API keys → Create key → paste it in **Settings → Text polish**, then turn on **Polish with Claude**.
+
+## Pricing, honestly
+
+VoiceNoah itself is free and open source. The speech engine is ElevenLabs:
+
+| ElevenLabs plan | Live dictation per month (approx.) |
 |---|---|
-| Speech → text | [ElevenLabs Scribe v3 Live](https://elevenlabs.io/speech-to-text) (realtime; best we tested on Egyptian + English) |
-| Fallback with no internet | Whisper large-v3-turbo running locally on your Mac (MLX) |
-| Text cleanup (optional) | Claude Haiku 5.5 by Anthropic |
+| Free | ~2.5 hours |
+| Starter, $6/month | ~27 hours |
+| Creator, $22/month | ~100 hours |
 
-## Requirements
-
-- A Mac with **Apple Silicon** (M1 or newer)
-- **Python 3.10+** ([python.org](https://www.python.org/downloads/macos/))
-- An **ElevenLabs** account (free plan: about 2.5 hours of live dictation a month; Starter, $6/month, about 27 hours)
-- Optional: an **Anthropic (Claude)** API key, for text cleanup
-
-## Install (about 5 minutes)
-
-1. **Download** this project: green **Code** button → **Download ZIP**, then unzip it. Or:
-   ```bash
-   git clone https://github.com/mustafamahermm/VoiceNoah.git
-   ```
-2. Double-click **`1 - Install VoiceNoah.command`**.
-   If macOS says it can't be opened: right-click the file → **Open** → **Open**.
-   It installs everything and opens VoiceNoah (a 〰️ icon appears in the menu bar).
-3. Allow **Accessibility** when asked: System Settings → Privacy & Security → Accessibility → turn on **VoiceNoah**.
-4. System Settings → Keyboard → **"Press 🌐 key to"** → **Do Nothing** (otherwise `fn` opens the emoji picker).
-5. Add your ElevenLabs key (below), then hold `fn` and speak. Allow the **Microphone** the first time.
-6. From the 〰️ menu, turn on **Open at login**.
-
-## Get your ElevenLabs API key
-
-1. Sign up at [elevenlabs.io](https://elevenlabs.io) (the free plan is fine).
-2. Go to **Developers → API keys** ([direct link](https://elevenlabs.io/app/developers/api-keys)) → **Create Key**.
-3. Name it `VoiceNoah`. Under permissions, set **Speech to Text → Access** and leave everything else on **No Access**.
-4. Click **Create Key** and **copy the key right away** (it starts with `sk_`, and is shown only once).
-5. Double-click **`2 - Add my ElevenLabs key.command`**, paste with **Cmd+V**, press **Enter**. You should see ✅.
-
-## Optional: text cleanup with Claude
-
-1. Sign in at [platform.claude.com](https://platform.claude.com) → **Settings → API keys → Create key**.
-2. Copy the key (it starts with `sk-ant-`). Make sure your account has some credit.
-3. Double-click **`3 - Add my Claude key (optional).command`**, paste, press **Enter**.
-
-Cleanup costs a tiny fraction of a cent per dictation. You can turn it on or off from the menu bar.
-
-## Settings
-
-Menu bar 〰️ → **Edit settings** opens `config.json`. Quit and reopen VoiceNoah after changes.
-
-| Setting | What it does |
-|---|---|
-| `engine` | `elevenlabs` (cloud, most accurate) or `local` (Whisper on your Mac, no internet) |
-| `cloud_model` | `scribe_v3` or `scribe_v2` |
-| `live` | `true`: stream and type sentence by sentence while you talk; `false`: transcribe in chunks |
-| `cleanup` / `polish_after_live` | Claude text cleanup (used in chunk mode; in live mode only if `polish_after_live` is `true`) |
-| `hotkey` | `fn` · `alt_r` (Right Option) · `cmd_r` · `ctrl_r` |
-| `vocabulary` | Names and terms you say often, so they're spelled right |
-| `replacements` | Fix a word that keeps coming out wrong: `{"wrong": "right"}` |
-
-Everything you dictate is saved locally in `history.jsonl` and shown in the dashboard (menu 〰️ → **Open dashboard**).
+When the monthly credit runs out, dictation stops until it renews or you upgrade on ElevenLabs.
 
 ## Privacy
 
-- Your API keys stay on your Mac in `keys.json` (readable only by your user account, and never committed to git).
-- Audio is sent to ElevenLabs only while you hold the key; text is sent to Anthropic only if cleanup is on.
-- With `"engine": "local"`, nothing leaves your Mac.
+- Your keys, settings, history and the last 20 recordings are stored only on your computer
+  (Mac: `~/Library/Application Support/VoiceNoah`, Windows: `%APPDATA%\VoiceNoah`).
+- Audio goes to ElevenLabs only while you hold the shortcut. Text goes to Anthropic only if you turn on AI polish.
+- No accounts, no tracking, no analytics.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `fn` does nothing | VoiceNoah must be on under Accessibility, and "Press 🌐 key to" = Do Nothing |
-| Nothing gets typed | Privacy & Security → Microphone → turn on VoiceNoah |
-| Anything else | Check the log: `~/Library/Logs/VoiceNoah.log` |
+| Mac: `fn` does nothing | Turn on VoiceNoah under Privacy & Security → Accessibility, and set "Press 🌐 key to" = Do Nothing |
+| Nothing gets typed | Allow the Microphone for VoiceNoah; check the ElevenLabs key in Settings |
+| Mac: "can't be opened" | Right-click the app → Open, or Privacy & Security → Open Anyway |
+| Windows: SmartScreen warning | More info → Run anyway |
 
-## How it works (for developers)
+## For developers
 
-- `voicenoah.py`: the whole app (PyObjC): global `fn` monitor, recording with `sounddevice`, pause detection that cuts the audio into chunks transcribed in parallel while you talk, the floating pill with live text, the menu bar item, cleanup, and pasting with Cmd+V (your clipboard is restored afterwards).
-- `dashboard.html`: the stats window (rendered in a WebKit view from `history.jsonl`).
-- `app/`: a tiny C launcher plus `build_app.sh`, which builds `~/Applications/VoiceNoah.app` so macOS permissions belong to "VoiceNoah" and not to Terminal.
-- `compare.py`: records your voice and compares the engines side by side (`.venv/bin/python compare.py record`, then `run`).
-
----
-
-## بالعربي: باختصار
-
-**VoiceNoah** بيخليك تمسك زرار `fn` وتتكلم مصري وإنجليزي مع بعض، وأول ما تسيبه الكلام يتكتب في أي برنامج. بيحوّل كلامك وإنت بتتكلم، فحتى الكلام الطويل بيتكتب في ثانية أو اتنين، وفيه داشبورد بإحصائياتك.
-خطوات التسطيب:
-1. نزّل المشروع (Code ← Download ZIP).
-2. دبل كليك على `1 - Install VoiceNoah.command`.
-3. اعمل مفتاح من ElevenLabs:
-   - Developers ← API keys ← Create Key.
-   - خلي **Speech to Text = Access** بس.
-   - انسخ المفتاح فوراً.
-4. دبل كليك على `2 - Add my ElevenLabs key.command`، والصق المفتاح، واضغط Enter.
-5. فعّل Accessibility و Microphone لـ VoiceNoah.
-6. خلي "Press 🌐 key to" = Do Nothing.
+- `voicenoah.py`: the macOS app (PyObjC): global shortcut, recording, the pill, menu bar, window (WebKit) and typing.
+- `voicenoah_win.py`: the Windows app (keyboard hook, tkinter pill, tray icon, pywebview window).
+- `core.py`: shared settings, keys, speech engines, cleanup and stats. `live.py`: ElevenLabs Scribe realtime (WebSocket).
+- `dashboard.html`: the app window (Home, History, Dictionary, Settings), shared by both platforms.
+- Build the Mac DMG: `packaging/build_mac.sh`. The Windows EXE is built by GitHub Actions (`.github/workflows/build-windows.yml`) on every release.
+- Run from source on a Mac: double-click `Install from source.command`.
 
 ---
 
-Made by [Mustafa Maher](https://github.com/mustafamahermm). MIT License.
+## بالعربي
+
+**VoiceNoah** بيخليك تبطّل كتابة وتبدأ تتكلم. اتكلم مصري وإنجليزي في نفس الجملة، والكلام يتكتب نضيف في أي برنامج على جهازك.
+
+1. نزّل النسخة المناسبة لجهازك من [آخر إصدار](https://github.com/mustafamahermm/VoiceNoah/releases/latest): **Mac (.dmg)** أو **Windows (.exe)**.
+2. اعمل حساب مجاني على ElevenLabs، ومن **Developers ← API keys ← Create Key** خلي **Speech to Text = Access** بس، وانسخ المفتاح.
+3. افتح VoiceNoah ← **Settings** ← الصق المفتاح ← **Save & test**.
+4. امسك **fn** على الماك، أو **Right Ctrl** على الويندوز، واتكلم.
+
+---
+
+Made by [Mustafa Maher](https://github.com/mustafamahermm) · MIT License

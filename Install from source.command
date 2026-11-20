@@ -30,7 +30,7 @@ echo "• Building VoiceNoah.app…"
 
 echo
 echo "✅ VoiceNoah is installed in your Applications folder (Home → Applications)."
-echo "   Next: double-click '2 - Add my ElevenLabs key.command'."
+echo "   Next: in the VoiceNoah window, open Settings and paste your ElevenLabs key."
 open "$HOME/Applications/VoiceNoah.app"
 echo
 read -p "Press Enter to close"

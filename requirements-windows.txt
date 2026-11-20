@@ -1,0 +1,12 @@
+numpy
+sounddevice
+requests
+certifi
+websocket-client
+anthropic
+keyboard
+pyperclip
+pystray
+pillow
+pywebview
+pyinstaller

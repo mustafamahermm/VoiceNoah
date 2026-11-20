@@ -13,3 +13,7 @@ app/build/
 .claude/
 .DS_Store
 social-posts.md
+dist/
+build/
+.ui-preview*.html
+*.spec.bak

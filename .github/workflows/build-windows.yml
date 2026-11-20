@@ -1,0 +1,55 @@
+name: Build Windows app
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-windows.txt
+      - name: Icon
+        run: python -c "from PIL import Image; Image.open('assets/VoiceNoah-icon.png').save('VoiceNoah.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+      - name: Build
+        run: >
+          pyinstaller voicenoah_win.py --name VoiceNoah --onefile --windowed --noconfirm
+          --icon VoiceNoah.ico
+          --add-data "dashboard.html;."
+          --add-data "config.default.json;."
+          --add-data "assets/VoiceNoah-icon.png;."
+          --hidden-import pystray._win32
+          --collect-all webview
+      - name: Check it starts
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\VoiceNoah.exe -ArgumentList "--background" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { Write-Error "VoiceNoah.exe exited early (code $($p.ExitCode))"; exit 1 }
+          Stop-Process -Id $p.Id -Force
+      - name: Rename
+        shell: pwsh
+        run: |
+          $v = python -c "import core; print(core.VERSION)" | Select-Object -Last 1
+          Copy-Item dist\VoiceNoah.exe "dist\VoiceNoah-$v-windows.exe"
+          echo "EXE=dist/VoiceNoah-$v-windows.exe" >> $env:GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoiceNoah-windows
+          path: ${{ env.EXE }}
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "${{ env.EXE }}" --clobber
