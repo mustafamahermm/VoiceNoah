@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""VoiceNoah - voice dictation for macOS (Egyptian Arabic + English).
+"""VoiceNoah - voice dictation for macOS (90+ languages, mixed freely).
 
 Hold fn and speak; release and the text is typed into whatever app has focus.
 Quick tap = hands-free mode (tap again to stop). Esc cancels.

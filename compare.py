@@ -35,7 +35,7 @@ def record():
     import sounddevice as sd
     REC_DIR.mkdir(exist_ok=True)
     n = len(list(REC_DIR.glob("*.wav")))
-    print("Speak the way you normally do: Egyptian Arabic mixed with English.\n"
+    print("Speak the way you normally do, in your language(s).\n"
           "Press Enter to start each sentence, and Enter again when you finish. Type q to quit.\n")
     while True:
         if input(f"[sentence {n + 1}] Enter to start (q to quit): ").strip().lower() == "q":

@@ -125,7 +125,7 @@
   <section class="page on" id="page-home">
     <div id="setup"></div>
     <h1 id="hello">Speak. VoiceNoah writes.</h1>
-    <p class="sub" id="tagline">Talk the way you think, in Arabic, English or both. VoiceNoah turns it into clean text in any app.</p>
+    <p class="sub" id="tagline">Talk the way you think, in any language or several at once. VoiceNoah turns it into clean text in any app.</p>
     <div class="grid" id="stats"></div>
     <div class="row">
       <div class="card">
@@ -298,7 +298,7 @@ function render() {
   $("hello").textContent = total ? `You've written ${fmt(total)} words by voice` : "Speak. VoiceNoah writes.";
   $("tagline").textContent = total
     ? `That's about ${minutesText(saved)} saved${faster > 1 ? `, ${faster.toFixed(1)}× faster than typing` : ""}. Keep talking.`
-    : "Talk the way you think, in Arabic, English or both. VoiceNoah turns it into clean text in any app.";
+    : "Talk the way you think, in any language or several at once. VoiceNoah turns it into clean text in any app.";
   const cards = [
     ["Today", fmt(byDay[todayKey] || 0), "words"],
     ["This week", fmt(week), "words"],

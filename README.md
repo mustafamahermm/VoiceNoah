@@ -3,7 +3,7 @@
 <h1 align="center">VoiceNoah</h1>
 
 <p align="center"><b>Stop typing. Start talking.</b><br>
-Speak naturally, in Arabic, English or both in the same sentence, and VoiceNoah writes it as clean text in any app on your computer.</p>
+Your voice is the fastest keyboard you own. Speak naturally in any of 90+ languages, or mix them in the same sentence, and VoiceNoah turns it into clean, ready-to-send text in any app on your computer.</p>
 
 <p align="center">
   <a href="https://github.com/mustafamahermm/VoiceNoah/releases/latest"><b>⬇️ Download for Mac (.dmg)</b></a> &nbsp;·&nbsp;
@@ -14,24 +14,25 @@ Speak naturally, in Arabic, English or both in the same sentence, and VoiceNoah 
 
 ## Why VoiceNoah
 
-You think faster than you type. Most people type around **40 words a minute** but speak at **130 to 150**.
-VoiceNoah lets you write at the speed you talk: emails, messages, documents, notes, prompts for ChatGPT and Claude, all by voice.
+Typing is the bottleneck between your ideas and the screen. Most people type around **40 words a minute**, but speak at **130 to 150**.
+VoiceNoah makes voice your main way to write: emails, messages, documents, notes, code comments, and prompts for ChatGPT and Claude. You talk, it writes, about **3× faster than typing**.
 
-And it was built for the way millions of us really speak. Most dictation tools fall apart the moment you mix languages:
-*"عايز أعمل meeting بكرة عشان نراجع الـ deadline"* comes out with the English words in Arabic letters, or "corrected" into formal Arabic, or wrong.
-VoiceNoah keeps **Egyptian Arabic as Egyptian** and **English as English**, in the same sentence.
+It is also built for the way people really talk. Many of us switch languages mid-sentence, and most dictation tools fall apart there:
+*"عايز أعمل meeting بكرة عشان نراجع الـ deadline"* comes out with the English words in Arabic letters, or "corrected" into formal Arabic, or simply wrong.
+VoiceNoah keeps every word in the language you said it in, and keeps your dialect: Egyptian Arabic stays Egyptian, English stays English, French stays French.
 
 ## What it does
 
-- **Works in every app.** Notion, Gmail, Slack, WhatsApp, Word, ChatGPT, Claude, your code editor. If it has a text box, VoiceNoah can write in it.
+- **Works in every app.** Notion, Gmail, Slack, WhatsApp, Word, Google Docs, ChatGPT, Claude, Cursor. If it has a text box, VoiceNoah can write in it. No plugins, no copy-paste.
+- **90+ languages, mixed freely.** Arabic, English, French, Spanish, German, Turkish, Hindi, Urdu and many more, detected automatically. Mix two languages in one sentence and it keeps both.
 - **Types while you talk.** Your words stream live, and each sentence lands in the text box as soon as you pause. When you let go, the last words appear in about half a second.
-- **Writes clean text.** Filler sounds ("umm", "آآ") are removed. With the optional AI polish, punctuation is fixed and self-corrections are applied: *"at 3… no, I mean 4"* becomes *"at 4"*.
-- **Mixed languages, one sentence.** Arabic and English together, no switching, no settings.
-- **Learns your words.** Add names, brands and terms to your dictionary so they're always spelled right.
-- **Shows your progress.** A dashboard with words per day, your speaking speed, time saved compared with typing, your streak, and a searchable history.
-- **Stays out of the way.** A small black pill appears at the bottom of the screen only while you speak.
-- **No subscription.** You use your own keys and pay only for what you use. The ElevenLabs free plan covers about 2.5 hours of dictation a month.
-- **Private by design.** Your history and keys stay on your computer. Audio is sent to ElevenLabs only while you hold the shortcut.
+- **Writes the way you meant it.** Filler sounds ("umm", "آآ", "euh") are removed. With the optional AI polish, punctuation is fixed and self-corrections are applied: *"at 3… no, I mean 4"* becomes *"at 4"*. It never translates you.
+- **Learns your words.** Add names, brands and jargon to your personal dictionary so they're always spelled right, and set automatic replacements.
+- **Your shortcut, your way.** Hold fn, or record any key or combination, so it works with any keyboard, including external ones.
+- **See the time you get back.** A dashboard with words per day, your speaking speed, time spent speaking, time saved compared with typing, your streak, and a searchable history.
+- **Stays out of the way.** A small black pill appears just above the Dock only while you speak.
+- **No subscription to VoiceNoah.** You use your own speech-engine key and pay only for what you use. The free plan covers about 2.5 hours of dictation a month.
+- **Private by design.** Your history and keys stay on your computer. Audio is sent to the speech engine only while you hold the shortcut.
 
 ## How it works
 
@@ -117,7 +118,7 @@ When the monthly credit runs out, dictation stops until it renews or you upgrade
 
 ## بالعربي
 
-**VoiceNoah** بيخليك تبطّل كتابة وتبدأ تتكلم. اتكلم مصري وإنجليزي في نفس الجملة، والكلام يتكتب نضيف في أي برنامج على جهازك.
+**VoiceNoah** بيخليك تبطّل كتابة وتبدأ تتكلم. صوتك أسرع كيبورد عندك: اتكلم بأي لغة من أكتر من 90 لغة، أو اخلط لغتين في نفس الجملة زي مصري وإنجليزي، والكلام يتكتب نضيف في أي برنامج على جهازك، وأسرع من الكتابة بـ 3 مرات.
 
 1. نزّل النسخة المناسبة لجهازك من [آخر إصدار](https://github.com/mustafamahermm/VoiceNoah/releases/latest): **Mac (.dmg)** أو **Windows (.exe)**.
 2. اعمل حساب مجاني على ElevenLabs، ومن **Developers ← API keys ← Create Key** خلي **Speech to Text = Access** بس، وانسخ المفتاح.

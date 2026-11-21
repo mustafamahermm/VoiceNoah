@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 APP_NAME = "VoiceNoah"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 SAMPLE_RATE = 16000
 TYPING_WPM = 40           # for "time saved" (average typing speed)
 
@@ -131,7 +131,7 @@ def wav_bytes(audio):
 
 
 def transcribe_cloud(audio):
-    """ElevenLabs Scribe: best at Egyptian Arabic mixed with English."""
+    """ElevenLabs Scribe: 90+ languages, strong on code-switching (e.g. Egyptian Arabic + English)."""
     key = load_keys().get("elevenlabs")
     if not key:
         raise RuntimeError("no ElevenLabs key in keys.json")
@@ -186,15 +186,15 @@ def transcribe(audio):
 
 
 # =================================================================== cleanup (Wispr-style)
-CLEANUP_SYSTEM = """You clean up voice-dictation transcripts. The speaker is Egyptian and mixes Egyptian Arabic with English.
+CLEANUP_SYSTEM = """You clean up voice-dictation transcripts. The speaker may use any language, and often mixes two languages in one sentence (for example Egyptian Arabic with English).
 
 Rewrite the transcript inside <transcript> as the text the speaker meant to type:
-- Remove filler sounds and words used as fillers (إمم، آآ، اه، يعني when it is filler, um, uh, like, you know).
+- Remove filler sounds and words used as fillers in any language (for example: um, uh, like, you know; إمم، آآ، يعني when it is filler; euh; ähm; eh).
 - Remove stutters, repeated words and false starts.
-- Apply self-corrections: if the speaker says "لأ قصدي" / "قصدي" / "I mean" / "no wait" and corrects something, keep only the corrected version.
-- Add natural punctuation and capitalization. Break into short paragraphs only if the text is long.
+- Apply self-corrections: when the speaker corrects themselves ("no, I mean…", "لأ قصدي…", "non, je veux dire…"), keep only the corrected version.
+- Add natural punctuation and capitalization for each language. Break into short paragraphs only if the text is long.
 - If the speaker clearly dictates a list, format it as a list.
-- Keep the speaker's words and dialect: Egyptian Arabic stays Egyptian colloquial (never convert it to Modern Standard Arabic), English words stay in English letters, nothing is translated.
+- Keep every word in the language and script it was spoken in, and keep the dialect: never translate, never change one language into another, never convert a dialect into its formal version (Egyptian Arabic stays Egyptian, not Modern Standard Arabic). English words inside another language stay in English letters.
 - Do not add, summarize, rephrase or improve content beyond the fixes above.
 - Spell these names and terms exactly like this when they appear: {vocab}
 
