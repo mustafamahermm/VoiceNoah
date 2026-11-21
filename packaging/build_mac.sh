@@ -32,3 +32,6 @@ DMG="dist/VoiceNoah-${VERSION}-mac.dmg"
 rm -f "$DMG"
 hdiutil create -volname "VoiceNoah" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 echo "Built $DMG ($(du -h "$DMG" | cut -f1))"
+
+# keep only the DMG: leftover app copies confuse Spotlight, Launchpad and the permission list
+rm -rf build/dmg build/pyi dist/VoiceNoah.app dist/VoiceNoah

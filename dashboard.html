@@ -236,6 +236,12 @@ window.vnReceive = function (m) {
     if (m.ok) { $(m.name === "elevenlabs" ? "elKey" : "anKey").value = ""; toast("Key saved"); }
   }
   else if (m.type === "saved") toast("Saved");
+  else if (m.type === "recording") { $("recBox").style.display = ""; if (m.label) $("recText").textContent = m.label; }
+  else if (m.type === "recordDone") {
+    if (m.error) { $("recText").textContent = m.error; }
+    else if (m.cancelled) { $("recBox").style.display = "none"; }
+    else { $("recText").textContent = "Saved: " + m.label; toast("Shortcut saved"); setTimeout(() => $("recBox").style.display = "none", 1400); }
+  }
   else if (m.type === "goto") go(m.page);
 };
 
@@ -395,8 +401,11 @@ function label(code) {
   const m = (S && S.platform === "windows" ? WIN_LABELS[code] : MODS[code]);
   return m || KEYS[code] || code.replace("Key", "").replace("Digit", "").replace("Numpad", "Num ");
 }
-$("recBtn").onclick = () => { rec = { held: new Set(), best: [], key: null }; $("recBox").style.display = "";
-  $("recText").textContent = "Press and hold the keys you want to use…"; $("recBtn").blur(); };
+$("recBtn").onclick = () => {
+  $("recBox").style.display = ""; $("recText").textContent = "Press and hold the keys you want to use…"; $("recBtn").blur();
+  if (S && S.platform === "mac") { send({ type: "recordShortcut" }); return; }   // recorded by the app, works anywhere
+  rec = { held: new Set(), best: [], key: null };
+};
 document.addEventListener("keydown", e => {
   if (!rec) return;
   e.preventDefault();

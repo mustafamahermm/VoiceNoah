@@ -90,6 +90,11 @@ LEGACY = {"fn": ["Fn"], "alt_r": ["AltRight"], "alt_l": ["AltLeft"], "cmd_r": ["
           "ctrl_r": ["ControlRight"]}
 
 
+MOD_BY_KEYCODE = {54: "MetaRight", 55: "MetaLeft", 56: "ShiftLeft", 60: "ShiftRight", 58: "AltLeft",
+                  61: "AltRight", 59: "ControlLeft", 62: "ControlRight", 63: "Fn"}
+CODE_BY_KEYCODE = {v: k for k, v in KEY_CODES.items()}
+
+
 def shortcut_codes(value):
     """Config value (old name like "fn", or a list of key codes) -> list of codes."""
     if isinstance(value, str):
@@ -465,6 +470,7 @@ class Controller(NSObject):
         self.pool = ThreadPoolExecutor(max_workers=4)
         self.monitors = []
         self.trusted = False
+        self.rec = None
         self.dash = None
         self.set_shortcut(CFG.get("hotkey", "fn"))
         return self
@@ -513,9 +519,9 @@ class Controller(NSObject):
             if f.origin.x <= mouse.x <= f.origin.x + f.size.width and \
                f.origin.y <= mouse.y <= f.origin.y + f.size.height:
                 screen = s
-        sf = screen.frame()               # the real bottom edge, like Wispr
-        self.panel.setFrameOrigin_((sf.origin.x + (sf.size.width - PANEL_W) / 2,
-                                    sf.origin.y - PILL_Y + CFG.get("pill_bottom_margin", 3)))
+        vf = screen.visibleFrame()        # just above the Dock (or the screen edge if the Dock is hidden)
+        self.panel.setFrameOrigin_((vf.origin.x + (vf.size.width - PANEL_W) / 2,
+                                    vf.origin.y - PILL_Y + CFG.get("pill_bottom_margin", 4)))
 
     @objc.python_method
     def make_menu(self):
@@ -607,14 +613,65 @@ class Controller(NSObject):
         self.install_tap()
 
     @objc.python_method
+    def start_recording_shortcut(self):
+        self.rec = {"held": set(), "key": None, "key_up": False, "best": []}
+        self.key_down = False
+
+    @objc.python_method
+    def record_event(self, kind, event):
+        rec = self.rec
+        kc = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode)
+        if kind == Quartz.kCGEventFlagsChanged:
+            code = MOD_BY_KEYCODE.get(kc)
+            if code:
+                if Quartz.CGEventGetFlags(event) & MOD_BITS[code]:
+                    rec["held"].add(code)
+                else:
+                    rec["held"].discard(code)
+        elif kind == Quartz.kCGEventKeyDown:
+            if kc == ESC:
+                self.rec = None
+                AppHelper.callAfter(self.send_web, {"type": "recordDone", "cancelled": True})
+                return
+            code = CODE_BY_KEYCODE.get(kc)
+            if code:
+                rec["key"], rec["key_up"] = code, False
+        elif kind == Quartz.kCGEventKeyUp:
+            if rec["key"] and CODE_BY_KEYCODE.get(kc) == rec["key"]:
+                rec["key_up"] = True
+        combo = [c for c in MOD_BITS if c in rec["held"]] + ([rec["key"]] if rec["key"] else [])
+        if len(combo) >= len(rec["best"]) and combo:
+            rec["best"] = combo
+            AppHelper.callAfter(self.send_web, {"type": "recording", "label": shortcut_label(combo)})
+        done = not rec["held"] and (rec["key"] is None or rec["key_up"])
+        if done and rec["best"]:
+            codes = rec["best"]
+            self.rec = None
+            AppHelper.callAfter(self.finish_recording, codes)
+
+    @objc.python_method
+    def finish_recording(self, codes):
+        save_config(hotkey=codes)
+        self.set_shortcut(codes)
+        log(f"✓ New shortcut: {self.keyname}")
+        self.send_web({"type": "recordDone", "label": self.keyname})
+        self.reload_dashboard()
+
+    @objc.python_method
     def install_tap(self):
         """An event tap lets a normal key (letters, `, §, Menu…) be the shortcut without typing it."""
         self.tap_ok = False
-        mask = Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown) | Quartz.CGEventMaskBit(Quartz.kCGEventKeyUp)
+        mask = (Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown) | Quartz.CGEventMaskBit(Quartz.kCGEventKeyUp)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventFlagsChanged))
 
         def cb(proxy, kind, event, refcon):
             if kind in (Quartz.kCGEventTapDisabledByTimeout, Quartz.kCGEventTapDisabledByUserInput):
                 Quartz.CGEventTapEnable(self.tap, True)
+                return event
+            if self.rec is not None:                      # recording a new shortcut: swallow keys
+                self.record_event(kind, event)
+                return None if kind != Quartz.kCGEventFlagsChanged else event
+            if kind == Quartz.kCGEventFlagsChanged:
                 return event
             if self.sc_key is None or time.time() < PASTE_GUARD[0]:
                 return event
@@ -679,7 +736,7 @@ class Controller(NSObject):
     # ---------------------------------------------------------- input
     @objc.python_method
     def on_flags(self, ev):
-        if time.time() < PASTE_GUARD[0]:
+        if time.time() < PASTE_GUARD[0] or self.rec is not None:
             return
         held = (ev.modifierFlags() & self.sc_mask) == self.sc_mask
         if self.sc_key is not None:          # modifiers + a key: releasing a modifier ends it
@@ -697,7 +754,7 @@ class Controller(NSObject):
 
     @objc.python_method
     def on_key(self, ev):
-        if time.time() < PASTE_GUARD[0]:
+        if time.time() < PASTE_GUARD[0] or self.rec is not None:
             return
         if self.sc_key is not None and ev.keyCode() == self.sc_key:
             if getattr(self, "tap_ok", False):
@@ -1020,6 +1077,14 @@ class Controller(NSObject):
         kind = msg.get("type")
         if kind == "getState":
             self.send_web(self.app_state())
+        elif kind == "recordShortcut":
+            if getattr(self, "tap_ok", False):
+                self.start_recording_shortcut()
+                self.send_web({"type": "recording", "label": ""})
+            else:
+                self.send_web({"type": "recordDone", "error": "Allow Accessibility first, then try again."})
+        elif kind == "cancelRecord":
+            self.rec = None
         elif kind == "saveKey":
             name, value = msg.get("name"), (msg.get("value") or "").strip()
             def work():
