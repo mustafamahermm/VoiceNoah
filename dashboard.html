@@ -192,7 +192,14 @@
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="set"><div><b>Shortcut</b><div class="d">Hold it to talk. Tap it once for hands-free.</div></div><select id="hotkey"></select></div>
+      <div class="set"><div><b>Shortcut</b><div class="d">Hold it to talk. Tap it once for hands-free.
+        <br>Using an external keyboard (Logitech and others)? The <b>fn</b> key usually doesn't reach your computer: choose <b>Right ⌘ + Right ⌥</b> or record your own.</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+          <select id="hotkey"></select><button class="btn ghost" id="recBtn">Record…</button></div></div>
+      <div id="recBox" class="banner" style="display:none;margin:4px 0 12px;text-align:center">
+        <div style="font-size:15px;font-weight:600" id="recText">Press and hold the keys you want to use…</div>
+        <div class="muted" style="margin-top:6px">Any key or keys together: ⌘ ⌥ ⌃ ⇧ (left or right), F-keys, or a key like ` or §. Release to save · Esc to cancel.</div>
+      </div>
       <div class="set"><div><b>Type as you speak</b><div class="d">Each sentence appears as soon as you pause.</div></div><label class="switch"><input type="checkbox" id="live"><span></span></label></div>
       <div class="set"><div><b>Polish with Claude</b><div class="d">Fix punctuation and remove fillers with AI after you finish (needs the Claude key).</div></div><label class="switch"><input type="checkbox" id="polish"><span></span></label></div>
       <div class="set"><div><b>Sounds</b><div class="d">A soft click when recording starts and stops.</div></div><label class="switch"><input type="checkbox" id="sounds"><span></span></label></div>
@@ -256,8 +263,7 @@ function render() {
   if (!S) return;
   const data = S.stats || [], st = S.settings || {};
   $("ver").textContent = `Version ${S.version || ""}`;
-  const hkName = (S.hotkeys || []).find(h => h[0] === st.hotkey);
-  $("hk1").textContent = $("hk2").textContent = hkName ? hkName[1] : st.hotkey;
+  $("hk1").textContent = $("hk2").textContent = st.hotkey_label || "fn";
 
   // setup banner when the engine key is missing
   $("setup").innerHTML = S.keys && S.keys.elevenlabs ? "" : `
@@ -279,6 +285,10 @@ function render() {
   let week = 0; for (let i = 0; i < 7; i++) week += byDay[daysAgo(i)] || 0;
   let streak = 0; { let i = byDay[todayKey] ? 0 : 1; while (byDay[daysAgo(i)]) { streak++; i++; } }
   const faster = wpm ? (wpm / TYPING_WPM) : 0;
+  const monthKey = todayKey.slice(0, 7);
+  const monthSecs = data.filter(r => (r.ts || "").startsWith(monthKey)).reduce((s, r) => s + (r.audio_sec || 0), 0);
+  const todaySecs = data.filter(r => (r.ts || "").startsWith(todayKey)).reduce((s, r) => s + (r.audio_sec || 0), 0);
+  const monthName = new Date().toLocaleDateString("en-US", { month: "long" });
   $("hello").textContent = total ? `You've written ${fmt(total)} words by voice` : "Speak. VoiceNoah writes.";
   $("tagline").textContent = total
     ? `That's about ${minutesText(saved)} saved${faster > 1 ? `, ${faster.toFixed(1)}× faster than typing` : ""}. Keep talking.`
@@ -287,6 +297,7 @@ function render() {
     ["Today", fmt(byDay[todayKey] || 0), "words"],
     ["This week", fmt(week), "words"],
     ["Your speed", wpm ? fmt(wpm) : "–", `words / min · typing ≈ ${TYPING_WPM}`],
+    ["Time speaking", minutesText(monthSecs / 60), `in ${monthName} · today ${minutesText(todaySecs / 60)} · all time ${minutesText(secs / 60)}`],
     ["Time saved", minutesText(saved), "vs. typing"],
     ["Streak", `${streak} ${streak === 1 ? "day" : "days"}`, streak ? "keep it going" : "dictate today to start"],
   ];
@@ -324,7 +335,7 @@ function renderHistory(q) {
     const k = (r.ts || "").slice(0, 10);
     if (k !== last) { html += `<div class="day">${dayLabel(k)}</div>`; last = k; }
     html += `<div class="item"><time>${(r.ts || "").slice(11, 16)}</time><div><div class="t" dir="auto">${esc(r.text)}</div>` +
-            `<div class="meta">${fmt(r.words)} words${r.app ? " · " + esc(r.app) : ""}</div></div><button class="copy" data-i="${i}">Copy</button></div>`;
+            `<div class="meta">${fmt(r.words)} words · ${minutesText((r.audio_sec || 0) / 60)}${r.app ? " · " + esc(r.app) : ""}</div></div><button class="copy" data-i="${i}">Copy</button></div>`;
   });
   $("list").innerHTML = html;
   $("list").querySelectorAll(".copy").forEach(b => b.onclick = () => {
@@ -356,7 +367,10 @@ function renderSettings() {
   const st = S.settings, k = S.keys || {};
   $("elStatus").innerHTML = k.elevenlabs ? `<span class="ok">● Connected</span> · key ending in …${esc(k.elevenlabs)}` : `<span class="err">● Not set</span>`;
   $("anStatus").innerHTML = k.anthropic ? `<span class="ok">● Connected</span> · key ending in …${esc(k.anthropic)}` : `<span class="muted">● Not set</span>`;
-  $("hotkey").innerHTML = (S.hotkeys || []).map(h => `<option value="${h[0]}" ${h[0] === st.hotkey ? "selected" : ""}>${esc(h[1])}</option>`).join("");
+  const cur = JSON.stringify(st.hotkey);
+  let opts = (S.hotkeys || []).map(h => `<option value='${esc(JSON.stringify(h[0]))}' ${JSON.stringify(h[0]) === cur ? "selected" : ""}>${esc(h[1])}</option>`);
+  if (!(S.hotkeys || []).some(h => JSON.stringify(h[0]) === cur)) opts.push(`<option value='${esc(cur)}' selected>${esc(st.hotkey_label || "Custom")}</option>`);
+  $("hotkey").innerHTML = opts.join("");
   $("live").checked = !!st.live; $("polish").checked = !!st.polish_after_live; $("sounds").checked = !!st.sounds; $("login").checked = !!st.login;
   const perm = S.permissions || {};
   $("permRow").style.display = S.platform === "mac" ? "" : "none";
@@ -368,7 +382,44 @@ document.querySelectorAll("[data-save]").forEach(b => b.onclick = () => {
   note.className = "muted"; note.textContent = "Checking the key…";
   send({ type: "saveKey", name, value: input.value.trim() });
 });
-$("hotkey").onchange = e => saveSettings({ hotkey: e.target.value });
+$("hotkey").onchange = e => saveSettings({ hotkey: JSON.parse(e.target.value) });
+
+// shortcut recorder: hold keys, release to save
+const MODS = { ControlLeft: "Left ⌃", ShiftLeft: "Left ⇧", ShiftRight: "Right ⇧", MetaLeft: "Left ⌘", MetaRight: "Right ⌘",
+               AltLeft: "Left ⌥", AltRight: "Right ⌥", ControlRight: "Right ⌃" };
+const WIN_LABELS = { ControlLeft: "Left Ctrl", ControlRight: "Right Ctrl", AltLeft: "Left Alt", AltRight: "Right Alt",
+                     ShiftLeft: "Left Shift", ShiftRight: "Right Shift", MetaLeft: "Left Win", MetaRight: "Right Win" };
+let rec = null;
+const KEYS = { IntlBackslash: "§ / < key", Backquote: "` key", ContextMenu: "Menu key", Space: "Space", Enter: "Return", Tab: "Tab" };
+function label(code) {
+  const m = (S && S.platform === "windows" ? WIN_LABELS[code] : MODS[code]);
+  return m || KEYS[code] || code.replace("Key", "").replace("Digit", "").replace("Numpad", "Num ");
+}
+$("recBtn").onclick = () => { rec = { held: new Set(), best: [], key: null }; $("recBox").style.display = "";
+  $("recText").textContent = "Press and hold the keys you want to use…"; $("recBtn").blur(); };
+document.addEventListener("keydown", e => {
+  if (!rec) return;
+  e.preventDefault();
+  if (e.code === "Escape") { rec = null; $("recBox").style.display = "none"; return; }
+  if (MODS[e.code]) rec.held.add(e.code);
+  else if (e.code) rec.key = e.code;        // any other key: F-keys, `, §, Menu, letters…
+  else return;
+  const combo = [...rec.held].concat(rec.key ? [rec.key] : []);
+  if (combo.length >= rec.best.length) rec.best = combo;
+  $("recText").textContent = rec.best.map(label).join(" + ");
+}, true);
+document.addEventListener("keyup", e => {
+  if (!rec) return;
+  e.preventDefault();
+  rec.held.delete(e.code);
+  if (e.code === rec.key) rec.key = null;
+  if (rec.held.size === 0 && !rec.key && rec.best.length) {
+    const codes = rec.best; rec = null;
+    $("recText").textContent = "Saved: " + codes.map(label).join(" + ");
+    setTimeout(() => $("recBox").style.display = "none", 1200);
+    saveSettings({ hotkey: codes }); S.settings.hotkey = codes; S.settings.hotkey_label = codes.map(label).join(" + ");
+  }
+}, true);
 $("live").onchange = e => saveSettings({ live: e.target.checked });
 $("polish").onchange = e => saveSettings({ polish_after_live: e.target.checked, cleanup: e.target.checked || S.settings.cleanup });
 $("sounds").onchange = e => saveSettings({ sounds: e.target.checked });

@@ -50,14 +50,62 @@ import core
 LAUNCH_AGENT = Path.home() / "Library/LaunchAgents/com.voicenoah.app.plist"
 APP_EXEC = Path.home() / "Applications/VoiceNoah.app/Contents/MacOS/VoiceNoah"
 
-# hotkey name -> (macOS key code, device-specific modifier bit)
-HOTKEYS = {
-    "alt_r": (61, 0x40), "alt_l": (58, 0x20),
-    "cmd_r": (54, 0x10), "ctrl_r": (62, 0x2000),
-    "fn": (63, 1 << 23),
-}
-HOTKEY_NAMES = {"alt_r": "Right ⌥ Option", "alt_l": "Left ⌥ Option",
-                "cmd_r": "Right ⌘ Command", "ctrl_r": "Right ⌃ Control", "fn": "fn"}
+# ---- shortcuts. A shortcut is a set of modifier keys held together, optionally plus one key.
+# Device-specific modifier bits (left and right are different keys):
+MOD_BITS = {"ControlLeft": 0x01, "ShiftLeft": 0x02, "ShiftRight": 0x04, "MetaLeft": 0x08,
+            "MetaRight": 0x10, "AltLeft": 0x20, "AltRight": 0x40, "ControlRight": 0x2000,
+            "Fn": 1 << 23}
+MOD_LABELS = {"ControlLeft": "Left ⌃", "ShiftLeft": "Left ⇧", "ShiftRight": "Right ⇧",
+              "MetaLeft": "Left ⌘", "MetaRight": "Right ⌘", "AltLeft": "Left ⌥", "AltRight": "Right ⌥",
+              "ControlRight": "Right ⌃", "Fn": "fn"}
+KEY_CODES = {"F1": 122, "F2": 120, "F3": 99, "F4": 118, "F5": 96, "F6": 97, "F7": 98, "F8": 100,
+             "F9": 101, "F10": 109, "F11": 103, "F12": 111, "F13": 105, "F14": 107, "F15": 113,
+             "F16": 106, "F17": 64, "F18": 79, "F19": 80, "F20": 90, "Space": 49,
+             # every other key (browser key codes -> macOS virtual key codes)
+             "KeyA": 0, "KeyS": 1, "KeyD": 2, "KeyF": 3, "KeyH": 4, "KeyG": 5, "KeyZ": 6, "KeyX": 7,
+             "KeyC": 8, "KeyV": 9, "IntlBackslash": 10, "KeyB": 11, "KeyQ": 12, "KeyW": 13, "KeyE": 14,
+             "KeyR": 15, "KeyY": 16, "KeyT": 17, "Digit1": 18, "Digit2": 19, "Digit3": 20, "Digit4": 21,
+             "Digit6": 22, "Digit5": 23, "Equal": 24, "Digit9": 25, "Digit7": 26, "Minus": 27,
+             "Digit8": 28, "Digit0": 29, "BracketRight": 30, "KeyO": 31, "KeyU": 32, "BracketLeft": 33,
+             "KeyI": 34, "KeyP": 35, "Enter": 36, "KeyL": 37, "KeyJ": 38, "Quote": 39, "KeyK": 40,
+             "Semicolon": 41, "Backslash": 42, "Comma": 43, "Slash": 44, "KeyN": 45, "KeyM": 46,
+             "Period": 47, "Tab": 48, "Backquote": 50, "IntlRo": 94, "IntlYen": 93,
+             "ContextMenu": 110, "Insert": 114, "Home": 115, "PageUp": 116, "Delete": 117, "End": 119,
+             "PageDown": 121, "ArrowLeft": 123, "ArrowRight": 124, "ArrowDown": 125, "ArrowUp": 126,
+             "NumpadDecimal": 65, "NumpadMultiply": 67, "NumpadAdd": 69, "NumLock": 71,
+             "NumpadDivide": 75, "NumpadEnter": 76, "NumpadSubtract": 78, "NumpadEqual": 81,
+             "Numpad0": 82, "Numpad1": 83, "Numpad2": 84, "Numpad3": 85, "Numpad4": 86, "Numpad5": 87,
+             "Numpad6": 88, "Numpad7": 89, "Numpad8": 91, "Numpad9": 92}
+KEY_LABELS = {"IntlBackslash": "§ / < key", "Backquote": "` key", "ContextMenu": "Menu key",
+              "Space": "Space", "Enter": "Return", "Tab": "Tab"}
+PRESETS = [                      # shown in Settings; the first one that works on ANY keyboard is marked
+    ("fn", ["Fn"]),
+    ("Right ⌘ + Right ⌥  (works on every keyboard)", ["MetaRight", "AltRight"]),
+    ("Right ⌥ Option", ["AltRight"]),
+    ("Right ⌘ Command", ["MetaRight"]),
+    ("Right ⌃ Control", ["ControlRight"]),
+    ("⌃ Control + ⌥ Option", ["ControlLeft", "AltLeft"]),
+]
+LEGACY = {"fn": ["Fn"], "alt_r": ["AltRight"], "alt_l": ["AltLeft"], "cmd_r": ["MetaRight"],
+          "ctrl_r": ["ControlRight"]}
+
+
+def shortcut_codes(value):
+    """Config value (old name like "fn", or a list of key codes) -> list of codes."""
+    if isinstance(value, str):
+        return LEGACY.get(value, ["Fn"])
+    codes = [c for c in (value or []) if c in MOD_BITS or c in KEY_CODES]
+    return codes or ["Fn"]
+
+
+def shortcut_label(codes):
+    def one(c):
+        if c in MOD_LABELS:
+            return MOD_LABELS[c]
+        if c in KEY_LABELS:
+            return KEY_LABELS[c]
+        return c.replace("Key", "").replace("Digit", "").replace("Numpad", "Num ")
+    return " + ".join(one(c) for c in codes)
 TAP_SECONDS = 0.35
 ESC = 53
 
@@ -418,9 +466,7 @@ class Controller(NSObject):
         self.monitors = []
         self.trusted = False
         self.dash = None
-        name = CFG.get("hotkey", "fn")
-        self.keycode, self.keymask = HOTKEYS.get(name, HOTKEYS["fn"])
-        self.keyname = HOTKEY_NAMES.get(name, name)
+        self.set_shortcut(CFG.get("hotkey", "fn"))
         return self
 
     # ---------------------------------------------------------- setup
@@ -540,11 +586,67 @@ class Controller(NSObject):
             AppHelper.callLater(2.0, self.check_trust)
 
     @objc.python_method
+    def set_shortcut(self, value):
+        codes = shortcut_codes(value)
+        self.sc_codes = codes
+        self.sc_mask = sum(MOD_BITS[c] for c in codes if c in MOD_BITS)
+        keys = [KEY_CODES[c] for c in codes if c in KEY_CODES]
+        self.sc_key = keys[0] if keys else None
+        self.keyname = shortcut_label(codes)
+        self.key_down = False
+
+    @objc.python_method
     def install_monitors(self):
+        from AppKit import NSEventMaskKeyUp
         self.monitors.append(NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
             NSEventMaskFlagsChanged, self.on_flags))
         self.monitors.append(NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
             NSEventMaskKeyDown, self.on_key))
+        self.monitors.append(NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
+            NSEventMaskKeyUp, self.on_key_up))
+        self.install_tap()
+
+    @objc.python_method
+    def install_tap(self):
+        """An event tap lets a normal key (letters, `, §, Menu…) be the shortcut without typing it."""
+        self.tap_ok = False
+        mask = Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown) | Quartz.CGEventMaskBit(Quartz.kCGEventKeyUp)
+
+        def cb(proxy, kind, event, refcon):
+            if kind in (Quartz.kCGEventTapDisabledByTimeout, Quartz.kCGEventTapDisabledByUserInput):
+                Quartz.CGEventTapEnable(self.tap, True)
+                return event
+            if self.sc_key is None or time.time() < PASTE_GUARD[0]:
+                return event
+            code = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode)
+            if code != self.sc_key:
+                return event
+            if kind == Quartz.kCGEventKeyDown:
+                held = (Quartz.CGEventGetFlags(event) & self.sc_mask) == self.sc_mask
+                if self.key_down:
+                    return None                       # swallow auto-repeat while held
+                if not held:
+                    return event                      # the key pressed without its modifiers: type normally
+                if not Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventAutorepeat):
+                    self.key_down = True
+                    AppHelper.callAfter(self.hotkey_down)
+                return None
+            if kind == Quartz.kCGEventKeyUp and self.key_down:
+                self.key_down = False
+                AppHelper.callAfter(self.hotkey_up)
+                return None
+            return event
+
+        self._tap_cb = cb
+        self.tap = Quartz.CGEventTapCreate(Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap,
+                                           Quartz.kCGEventTapOptionDefault, mask, cb, None)
+        if not self.tap:
+            log("  (could not install the key tap; letter keys as shortcut will also type)")
+            return
+        src = Quartz.CFMachPortCreateRunLoopSource(None, self.tap, 0)
+        Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetCurrent(), src, Quartz.kCFRunLoopCommonModes)
+        Quartz.CGEventTapEnable(self.tap, True)
+        self.tap_ok = True
 
     @objc.python_method
     def load_model(self):
@@ -577,9 +679,15 @@ class Controller(NSObject):
     # ---------------------------------------------------------- input
     @objc.python_method
     def on_flags(self, ev):
-        if ev.keyCode() != self.keycode:
+        if time.time() < PASTE_GUARD[0]:
             return
-        down = bool(ev.modifierFlags() & self.keymask)
+        held = (ev.modifierFlags() & self.sc_mask) == self.sc_mask
+        if self.sc_key is not None:          # modifiers + a key: releasing a modifier ends it
+            if self.key_down and not held:
+                self.key_down = False
+                self.hotkey_up()
+            return
+        down = held
         if down and not self.key_down:
             self.key_down = True
             self.hotkey_down()
@@ -589,12 +697,30 @@ class Controller(NSObject):
 
     @objc.python_method
     def on_key(self, ev):
-        if self.state not in ("recording", "locked") or time.time() < PASTE_GUARD[0]:
+        if time.time() < PASTE_GUARD[0]:
+            return
+        if self.sc_key is not None and ev.keyCode() == self.sc_key:
+            if getattr(self, "tap_ok", False):
+                return                              # handled (and swallowed) by the event tap
+            if not ev.isARepeat() and not self.key_down and \
+                    (ev.modifierFlags() & self.sc_mask) == self.sc_mask:
+                self.key_down = True
+                self.hotkey_down()
+            return
+        if self.state not in ("recording", "locked"):
             return
         if ev.keyCode() == ESC:
             self.cancel()
         elif self.state == "recording" and time.time() - self.press_t < 0.6:
             self.cancel(silent=True)    # hotkey used as a normal modifier (fn+key)
+
+    @objc.python_method
+    def on_key_up(self, ev):
+        if getattr(self, "tap_ok", False):
+            return
+        if self.sc_key is not None and ev.keyCode() == self.sc_key and self.key_down:
+            self.key_down = False
+            self.hotkey_up()
 
     @objc.python_method
     def hotkey_down(self):
@@ -868,12 +994,13 @@ class Controller(NSObject):
             "stats": load_stats(),
             "keys": {k: (keys[k][-4:] if keys.get(k) else "") for k in ("elevenlabs", "anthropic")},
             "settings": {
-                "hotkey": CFG.get("hotkey", "fn"), "live": CFG.get("live", True),
+                "hotkey": shortcut_codes(CFG.get("hotkey", "fn")), "hotkey_label": self.keyname,
+                "live": CFG.get("live", True),
                 "cleanup": CFG.get("cleanup", True), "polish_after_live": CFG.get("polish_after_live", False),
                 "sounds": CFG.get("sounds", True), "login": LAUNCH_AGENT.exists(),
                 "vocabulary": CFG.get("vocabulary") or [], "replacements": CFG.get("replacements") or {},
             },
-            "hotkeys": [[k, HOTKEY_NAMES[k]] for k in ("fn", "alt_r", "cmd_r", "ctrl_r")],
+            "hotkeys": [[codes, label] for label, codes in PRESETS],
             "permissions": {"accessibility": bool(self.trusted)},
         }
 
@@ -909,8 +1036,10 @@ class Controller(NSObject):
                 st["vocabulary"] = [str(v).strip() for v in st["vocabulary"] if str(v).strip()]
             save_config(**st)
             if "hotkey" in st:
-                self.keycode, self.keymask = HOTKEYS.get(st["hotkey"], HOTKEYS["fn"])
-                self.keyname = HOTKEY_NAMES.get(st["hotkey"], st["hotkey"])
+                st["hotkey"] = shortcut_codes(st["hotkey"])
+                save_config(hotkey=st["hotkey"])
+                self.set_shortcut(st["hotkey"])
+                self.reload_dashboard()
             if login is not None and login != LAUNCH_AGENT.exists():
                 self.toggleLogin_(None)
             if "cleanup" in st:

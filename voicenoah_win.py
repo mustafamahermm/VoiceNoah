@@ -25,8 +25,36 @@ from core import (APP_NAME, CFG, DASHBOARD_HTML, RES_DIR, SAMPLE_RATE, VERSION, 
                   save_recording, test_key, transcribe, words_today)
 from live import LiveSession, clean_live
 
-HOTKEYS = {"right ctrl": "Right Ctrl", "right alt": "Right Alt", "right shift": "Right Shift",
-           "caps lock": "Caps Lock", "f8": "F8", "f9": "F9"}
+# shortcut = list of key codes (same names the window's recorder sends) held together
+CODE_TO_NAMES = {"ControlLeft": {"ctrl", "left ctrl"}, "ControlRight": {"right ctrl"},
+                 "AltLeft": {"alt", "left alt"}, "AltRight": {"right alt", "alt gr"},
+                 "ShiftLeft": {"shift", "left shift"}, "ShiftRight": {"right shift"},
+                 "MetaLeft": {"left windows", "windows"}, "MetaRight": {"right windows"},
+                 "Space": {"space"}, "Backquote": {"`"}, "IntlBackslash": {"<", "\\"},
+                 "ContextMenu": {"menu", "apps"}, "CapsLock": {"caps lock"},
+                 **{f"F{i}": {f"f{i}"} for i in range(1, 25)},
+                 **{f"Key{c}": {c.lower()} for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+                 **{f"Digit{d}": {str(d)} for d in range(10)}}
+LABELS = {"ControlLeft": "Left Ctrl", "ControlRight": "Right Ctrl", "AltLeft": "Left Alt",
+          "AltRight": "Right Alt", "ShiftLeft": "Left Shift", "ShiftRight": "Right Shift",
+          "MetaLeft": "Left Win", "MetaRight": "Right Win"}
+PRESETS = [("Right Ctrl", ["ControlRight"]),
+           ("Right Ctrl + Right Shift", ["ControlRight", "ShiftRight"]),
+           ("Ctrl + Win", ["ControlLeft", "MetaLeft"]),
+           ("Right Alt", ["AltRight"]), ("F8", ["F8"])]
+LEGACY = {"right ctrl": ["ControlRight"], "right alt": ["AltRight"], "right shift": ["ShiftRight"],
+          "f8": ["F8"], "f9": ["F9"]}
+
+
+def shortcut_codes(value):
+    if isinstance(value, str):
+        return LEGACY.get(value, ["ControlRight"])
+    codes = [c for c in (value or []) if c in CODE_TO_NAMES]
+    return codes or ["ControlRight"]
+
+
+def shortcut_label(codes):
+    return " + ".join(LABELS.get(c, c) for c in codes)
 TAP_SECONDS = 0.35
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
@@ -74,12 +102,14 @@ class WindowApi:
             "type": "state", "platform": "windows", "version": VERSION, "stats": load_stats(),
             "keys": {k: (keys[k][-4:] if keys.get(k) else "") for k in ("elevenlabs", "anthropic")},
             "settings": {
-                "hotkey": st.get("win_hotkey", "right ctrl"), "live": st.get("live", True),
+                "hotkey": shortcut_codes(st.get("win_hotkey")),
+                "hotkey_label": shortcut_label(shortcut_codes(st.get("win_hotkey"))),
+                "live": st.get("live", True),
                 "cleanup": st.get("cleanup", True), "polish_after_live": st.get("polish_after_live", False),
                 "sounds": st.get("sounds", True), "login": login_enabled(),
                 "vocabulary": st.get("vocabulary") or [], "replacements": st.get("replacements") or {},
             },
-            "hotkeys": [[k, v] for k, v in HOTKEYS.items()],
+            "hotkeys": [[codes, label] for label, codes in PRESETS],
             "permissions": {"accessibility": True},
         }
 
@@ -97,7 +127,7 @@ class WindowApi:
             st = dict(msg.get("settings") or {})
             login = st.pop("login", None)
             if "hotkey" in st:
-                st["win_hotkey"] = st.pop("hotkey")
+                st["win_hotkey"] = shortcut_codes(st.pop("hotkey"))
             save_config(**st)
             if login is not None:
                 set_login(bool(login))
@@ -253,7 +283,8 @@ class App:
         self.live = None
         self.pending = 0
         self.cfg_mtime = 0.0
-        self.hotkey = CFG.get("win_hotkey", "right ctrl")
+        self.hotkey = shortcut_codes(CFG.get("win_hotkey"))
+        self.pressed = set()
         self.typed = []
 
     # ---------------------------------------------------------- settings changes from the window
@@ -263,22 +294,34 @@ class App:
             if m != self.cfg_mtime:
                 self.cfg_mtime = m
                 CFG.update(json.loads(core.CONFIG_PATH.read_text(encoding="utf-8")))
-                self.hotkey = CFG.get("win_hotkey", "right ctrl")
+                self.hotkey = shortcut_codes(CFG.get("win_hotkey"))
         except Exception:
             pass
         self.root.after(1500, self.watch_config)
 
     # ---------------------------------------------------------- keyboard
+    def chord_held(self):
+        return all(self.pressed & CODE_TO_NAMES[c] for c in self.hotkey)
+
     def on_key(self, ev):
         name = (ev.name or "").lower()
-        if name == self.hotkey:
-            if ev.event_type == "down" and not self.key_down:
-                self.key_down = True
-                self.root.after(0, self.hotkey_down)
-            elif ev.event_type == "up" and self.key_down:
-                self.key_down = False
-                self.root.after(0, self.hotkey_up)
-        elif ev.event_type == "down" and self.state in ("recording", "locked"):
+        if ev.event_type == "down":
+            self.pressed.add(name)
+        else:
+            self.pressed.discard(name)
+        part_of_chord = any(name in CODE_TO_NAMES[c] for c in self.hotkey)
+        held = self.chord_held()
+        if held and not self.key_down:
+            self.key_down = True
+            self.root.after(0, self.hotkey_down)
+            return
+        if not held and self.key_down:
+            self.key_down = False
+            self.root.after(0, self.hotkey_up)
+            return
+        if part_of_chord:
+            return
+        if ev.event_type == "down" and self.state in ("recording", "locked"):
             if name == "esc":
                 self.root.after(0, self.cancel)
             elif self.state == "recording" and time.time() - self.press_t < 0.6 and name not in ("v",):
@@ -433,7 +476,7 @@ class App:
         keyboard.hook(self.on_key)
         self.start_tray()
         self.watch_config()
-        log(f"{APP_NAME} is running. Hold {HOTKEYS.get(self.hotkey, self.hotkey)} and speak.")
+        log(f"{APP_NAME} is running. Hold {shortcut_label(self.hotkey)} and speak.")
         self.root.mainloop()
         os._exit(0)
 

@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 APP_NAME = "VoiceNoah"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 SAMPLE_RATE = 16000
 TYPING_WPM = 40           # for "time saved" (average typing speed)
 
