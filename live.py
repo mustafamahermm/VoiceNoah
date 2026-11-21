@@ -38,13 +38,14 @@ class LiveSession:
     """
 
     def __init__(self, key, on_partial, on_commit, model="scribe_v3_live", keyterms=None,
-                 language=None, silence_secs=0.6, log=print):
+                 language=None, silence_secs=0.6, log=print, extra=None):
         self.key, self.on_partial, self.on_commit, self.log = key, on_partial, on_commit, log
         params = {"model_id": model, "audio_format": "pcm_16000", "commit_strategy": "vad",
                   "vad_silence_threshold_secs": silence_secs}
         if language:
             params["language_code"] = language
-        q = urlencode(params)
+        params.update(extra or {})
+        q = urlencode(params, doseq=True)
         for t in (keyterms or [])[:50]:
             q += "&" + urlencode({"keyterms": t})
         self.url = f"{URL}?{q}"

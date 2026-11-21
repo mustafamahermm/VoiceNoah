@@ -361,7 +361,7 @@ class App:
         self.typed = typed
 
         def on_commit(text):
-            text = clean_live(text)
+            text = core.apply_replacements(clean_live(text))
             if text and CFG.get("live", True):
                 typed.append(text)
                 paste_text(text + " ")
@@ -376,7 +376,8 @@ class App:
                                     model=CFG.get("live_model", "scribe_v3_live"),
                                     keyterms=[t for t in (CFG.get("vocabulary") or []) if t],
                                     language=CFG.get("language"),
-                                    silence_secs=CFG.get("live_pause_secs", 0.6), log=log)
+                                    silence_secs=CFG.get("live_pause_secs", 0.6), log=log,
+                extra={"multilang_mode": "true"} if CFG.get("live_multilang", True) else None)
             self.live.app = app
             self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
                                          blocksize=800, callback=self.audio_cb)

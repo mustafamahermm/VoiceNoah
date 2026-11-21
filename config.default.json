@@ -34,5 +34,6 @@
   "live_pause_secs": 0.6,
   "polish_after_live": false,
   "live_partials": false,
-  "pill_bottom_margin": 3
+  "pill_bottom_margin": 3,
+  "live_multilang": true
 }

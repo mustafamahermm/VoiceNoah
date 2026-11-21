@@ -226,7 +226,7 @@ class Typer:
     def commit(self, text):
         if not self.active:
             return
-        text = clean_live(text)
+        text = apply_replacements(clean_live(text))
         self._show(text + " " if text else "")
         self.done += self.seg
         self.seg = ""
@@ -851,7 +851,8 @@ class Controller(NSObject):
                 model=CFG.get("live_model", "scribe_v3_live"),
                 keyterms=[t for t in (CFG.get("vocabulary") or []) if t],
                 language=CFG.get("language"),
-                silence_secs=CFG.get("live_pause_secs", 0.6), log=log)
+                silence_secs=CFG.get("live_pause_secs", 0.6), log=log,
+                extra={"multilang_mode": "true"} if CFG.get("live_multilang", True) else None)
             self.live.app = app_name
         else:
             d = Dictation(self.pool, self.on_live)

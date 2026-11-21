@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 APP_NAME = "VoiceNoah"
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 SAMPLE_RATE = 16000
 TYPING_WPM = 40           # for "time saved" (average typing speed)
 
@@ -330,3 +330,11 @@ def test_key(name, value):
     except Exception as e:
         return False, f"Could not check the key: {e}"
     return False, "unknown key"
+
+
+def apply_replacements(text):
+    """The user's 'Always replace' list from the Dictionary."""
+    for old, new in (CFG.get("replacements") or {}).items():
+        if old:
+            text = text.replace(old, new)
+    return text
