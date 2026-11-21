@@ -53,8 +53,24 @@ def shortcut_codes(value):
     return codes or ["ControlRight"]
 
 
+def shortcut_list(value):
+    """Config value -> list of shortcuts; older configs hold a single one."""
+    if isinstance(value, list) and value and all(isinstance(v, list) for v in value):
+        out = []
+        for v in value:
+            c = shortcut_codes(v)
+            if c not in out:
+                out.append(c)
+        return out or [["ControlRight"]]
+    return [shortcut_codes(value)]
+
+
 def shortcut_label(codes):
     return " + ".join(LABELS.get(c, c) for c in codes)
+
+
+def shortcuts_label(lst):
+    return " or ".join(shortcut_label(c) for c in lst)
 TAP_SECONDS = 0.35
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
@@ -102,8 +118,9 @@ class WindowApi:
             "type": "state", "platform": "windows", "version": VERSION, "stats": load_stats(),
             "keys": {k: (keys[k][-4:] if keys.get(k) else "") for k in ("elevenlabs", "anthropic")},
             "settings": {
-                "hotkey": shortcut_codes(st.get("win_hotkey")),
-                "hotkey_label": shortcut_label(shortcut_codes(st.get("win_hotkey"))),
+                "hotkey": shortcut_list(st.get("win_hotkey")),
+                "hotkey_label": shortcuts_label(shortcut_list(st.get("win_hotkey"))),
+                "hotkey_labels": [shortcut_label(c) for c in shortcut_list(st.get("win_hotkey"))],
                 "live": st.get("live", True),
                 "cleanup": st.get("cleanup", True), "polish_after_live": st.get("polish_after_live", False),
                 "sounds": st.get("sounds", True), "login": login_enabled(),
@@ -127,7 +144,7 @@ class WindowApi:
             st = dict(msg.get("settings") or {})
             login = st.pop("login", None)
             if "hotkey" in st:
-                st["win_hotkey"] = shortcut_codes(st.pop("hotkey"))
+                st["win_hotkey"] = shortcut_list(st.pop("hotkey"))
             save_config(**st)
             if login is not None:
                 set_login(bool(login))
@@ -283,7 +300,7 @@ class App:
         self.live = None
         self.pending = 0
         self.cfg_mtime = 0.0
-        self.hotkey = shortcut_codes(CFG.get("win_hotkey"))
+        self.hotkeys = shortcut_list(CFG.get("win_hotkey"))
         self.pressed = set()
         self.typed = []
 
@@ -294,14 +311,14 @@ class App:
             if m != self.cfg_mtime:
                 self.cfg_mtime = m
                 CFG.update(json.loads(core.CONFIG_PATH.read_text(encoding="utf-8")))
-                self.hotkey = shortcut_codes(CFG.get("win_hotkey"))
+                self.hotkeys = shortcut_list(CFG.get("win_hotkey"))
         except Exception:
             pass
         self.root.after(1500, self.watch_config)
 
     # ---------------------------------------------------------- keyboard
     def chord_held(self):
-        return all(self.pressed & CODE_TO_NAMES[c] for c in self.hotkey)
+        return any(all(self.pressed & CODE_TO_NAMES[c] for c in hk) for hk in self.hotkeys)
 
     def on_key(self, ev):
         name = (ev.name or "").lower()
@@ -309,7 +326,7 @@ class App:
             self.pressed.add(name)
         else:
             self.pressed.discard(name)
-        part_of_chord = any(name in CODE_TO_NAMES[c] for c in self.hotkey)
+        part_of_chord = any(name in CODE_TO_NAMES[c] for hk in self.hotkeys for c in hk)
         held = self.chord_held()
         if held and not self.key_down:
             self.key_down = True
@@ -379,9 +396,13 @@ class App:
                                     silence_secs=CFG.get("live_pause_secs", 0.6), log=log,
                 extra={"multilang_mode": "true"} if CFG.get("live_multilang", True) else None)
             self.live.app = app
-            self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
-                                         blocksize=800, callback=self.audio_cb)
-            self.stream.start()
+            try:
+                self.open_mic()
+            except Exception as e:     # the microphone changed since start: refresh the list, try again
+                log(f"Microphone error ({e}); trying again")
+                sd._terminate()
+                sd._initialize()
+                self.open_mic()
         except Exception as e:
             log(f"Microphone error: {e}")
             beep("error")
@@ -389,6 +410,11 @@ class App:
             return
         self.state = self.pill.state = "recording"
         beep("start")
+
+    def open_mic(self):
+        self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
+                                     blocksize=800, callback=self.audio_cb)
+        self.stream.start()
 
     def close_stream(self):
         if self.stream:
@@ -477,7 +503,7 @@ class App:
         keyboard.hook(self.on_key)
         self.start_tray()
         self.watch_config()
-        log(f"{APP_NAME} is running. Hold {shortcut_label(self.hotkey)} and speak.")
+        log(f"{APP_NAME} is running. Hold {shortcuts_label(self.hotkeys)} and speak.")
         self.root.mainloop()
         os._exit(0)
 

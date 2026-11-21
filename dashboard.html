@@ -192,10 +192,11 @@
     </div>
 
     <div class="card" style="margin-top:12px">
-      <div class="set"><div><b>Shortcut</b><div class="d">Hold it to talk. Tap it once for hands-free.
-        <br>Using an external keyboard (Logitech and others)? The <b>fn</b> key usually doesn't reach your computer: choose <b>Right ⌘ + Right ⌥</b> or record your own.</div></div>
+      <div class="set"><div><b>Shortcuts</b><div class="d">Hold any of them to talk. Tap once for hands-free.
+        <br>Add one for each keyboard: for example <b>fn</b> on the Mac's keyboard and your own keys on a Logitech (its fn key usually doesn't reach the computer).</div></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-          <select id="hotkey"></select><button class="btn ghost" id="recBtn">Record…</button></div></div>
+          <select id="hotkey"></select><button class="btn ghost" id="recBtn">Record new…</button></div></div>
+      <div id="hkList" style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px"></div>
       <div id="recBox" class="banner" style="display:none;margin:4px 0 12px;text-align:center">
         <div style="font-size:15px;font-weight:600" id="recText">Press and hold the keys you want to use…</div>
         <div class="muted" style="margin-top:6px">Any key or keys together: ⌘ ⌥ ⌃ ⇧ (left or right), F-keys, or a key like ` or §. Release to save · Esc to cancel.</div>
@@ -240,7 +241,7 @@ window.vnReceive = function (m) {
   else if (m.type === "recordDone") {
     if (m.error) { $("recText").textContent = m.error; }
     else if (m.cancelled) { $("recBox").style.display = "none"; }
-    else { $("recText").textContent = "Saved: " + m.label; toast("Shortcut saved"); setTimeout(() => $("recBox").style.display = "none", 1400); }
+    else { $("recText").textContent = "Added: " + m.label; toast("Shortcut added"); setTimeout(() => $("recBox").style.display = "none", 1400); }
   }
   else if (m.type === "goto") go(m.page);
 };
@@ -373,10 +374,15 @@ function renderSettings() {
   const st = S.settings, k = S.keys || {};
   $("elStatus").innerHTML = k.elevenlabs ? `<span class="ok">● Connected</span> · key ending in …${esc(k.elevenlabs)}` : `<span class="err">● Not set</span>`;
   $("anStatus").innerHTML = k.anthropic ? `<span class="ok">● Connected</span> · key ending in …${esc(k.anthropic)}` : `<span class="muted">● Not set</span>`;
-  const cur = JSON.stringify(st.hotkey);
-  let opts = (S.hotkeys || []).map(h => `<option value='${esc(JSON.stringify(h[0]))}' ${JSON.stringify(h[0]) === cur ? "selected" : ""}>${esc(h[1])}</option>`);
-  if (!(S.hotkeys || []).some(h => JSON.stringify(h[0]) === cur)) opts.push(`<option value='${esc(cur)}' selected>${esc(st.hotkey_label || "Custom")}</option>`);
-  $("hotkey").innerHTML = opts.join("");
+  const list = hkList(), have = list.map(c => JSON.stringify(c)), labels = st.hotkey_labels || list.map(c => c.map(label).join(" + "));
+  $("hkList").innerHTML = list.map((c, i) => `<span class="chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line, #ddd);border-radius:999px;font-size:13px">
+    <b>${esc(labels[i] || "")}</b>${list.length > 1 ? `<button class="btn ghost" data-rm="${i}" title="Remove" style="padding:0 6px;min-height:0;line-height:18px">✕</button>` : ""}</span>`).join("");
+  document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+    const l = hkList(); l.splice(+b.dataset.rm, 1); setHotkeys(l);
+  });
+  const opts = (S.hotkeys || []).filter(h => !have.includes(JSON.stringify(h[0])))
+    .map(h => `<option value='${esc(JSON.stringify(h[0]))}'>${esc(h[1])}</option>`);
+  $("hotkey").innerHTML = `<option value="">Add a shortcut…</option>` + opts.join("");
   $("live").checked = !!st.live; $("polish").checked = !!st.polish_after_live; $("sounds").checked = !!st.sounds; $("login").checked = !!st.login;
   const perm = S.permissions || {};
   $("permRow").style.display = S.platform === "mac" ? "" : "none";
@@ -388,7 +394,16 @@ document.querySelectorAll("[data-save]").forEach(b => b.onclick = () => {
   note.className = "muted"; note.textContent = "Checking the key…";
   send({ type: "saveKey", name, value: input.value.trim() });
 });
-$("hotkey").onchange = e => saveSettings({ hotkey: JSON.parse(e.target.value) });
+function hkList() {   // older versions kept one shortcut: ["Fn"]; now a list of them: [["Fn"], ["MetaRight","AltRight"]]
+  const h = (S.settings || {}).hotkey || [["Fn"]];
+  return h.length && Array.isArray(h[0]) ? h.map(c => c.slice()) : [h.slice()];
+}
+function setHotkeys(l) {
+  if (!l.length) return;
+  S.settings.hotkey = l; S.settings.hotkey_labels = l.map(c => c.map(label).join(" + "));
+  saveSettings({ hotkey: l }); renderSettings();
+}
+$("hotkey").onchange = e => { if (e.target.value) { const l = hkList(); l.push(JSON.parse(e.target.value)); setHotkeys(l); } };
 
 // shortcut recorder: hold keys, release to save
 const MODS = { ControlLeft: "Left ⌃", ShiftLeft: "Left ⇧", ShiftRight: "Right ⇧", MetaLeft: "Left ⌘", MetaRight: "Right ⌘",
@@ -426,7 +441,7 @@ document.addEventListener("keyup", e => {
     const codes = rec.best; rec = null;
     $("recText").textContent = "Saved: " + codes.map(label).join(" + ");
     setTimeout(() => $("recBox").style.display = "none", 1200);
-    saveSettings({ hotkey: codes }); S.settings.hotkey = codes; S.settings.hotkey_label = codes.map(label).join(" + ");
+    const l = hkList(); if (!l.some(c => JSON.stringify(c) === JSON.stringify(codes))) l.push(codes); setHotkeys(l);
   }
 }, true);
 $("live").onchange = e => saveSettings({ live: e.target.checked });

@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 APP_NAME = "VoiceNoah"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 SAMPLE_RATE = 16000
 TYPING_WPM = 40           # for "time saved" (average typing speed)
 
@@ -84,8 +84,21 @@ def save_keys(**keys):
         pass
 
 
+_LOG = [None]
+
+
 def log(*a):
     print(*a, flush=True)
+    try:                     # also keep a small log file next to the settings, for troubleshooting
+        if _LOG[0] is None:
+            path = DATA_DIR / "VoiceNoah.log"
+            if path.exists() and path.stat().st_size > 1_000_000:
+                path.replace(DATA_DIR / "VoiceNoah.old.log")
+            _LOG[0] = open(path, "a", encoding="utf-8")
+        _LOG[0].write(time.strftime("%Y-%m-%d %H:%M:%S ") + " ".join(str(x) for x in a) + "\n")
+        _LOG[0].flush()
+    except Exception:
+        pass
 
 
 # =================================================================== speech

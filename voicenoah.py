@@ -103,6 +103,18 @@ def shortcut_codes(value):
     return codes or ["Fn"]
 
 
+def shortcut_list(value):
+    """Config value -> list of shortcuts (each a list of codes). Older configs hold one shortcut."""
+    if isinstance(value, list) and value and all(isinstance(v, list) for v in value):
+        out = []
+        for v in value:
+            c = shortcut_codes(v)
+            if c not in out:
+                out.append(c)
+        return out or [["Fn"]]
+    return [shortcut_codes(value)]
+
+
 def shortcut_label(codes):
     def one(c):
         if c in MOD_LABELS:
@@ -460,7 +472,7 @@ class Controller(NSObject):
             return None
         self.state = "loading"
         self.press_t = 0.0
-        self.key_down = False
+        self.active = None
         self.level = 0.0
         self.stream = None
         self.dict = None
@@ -535,7 +547,7 @@ class Controller(NSObject):
         dash = m.addItemWithTitle_action_keyEquivalent_("Open VoiceNoah", "openDashboard:", "o")
         dash.setTarget_(self)
         m.addItem_(NSMenuItem.separatorItem())
-        m.addItemWithTitle_action_keyEquivalent_(f"Hold {self.keyname} to talk", None, "")
+        self.hold_mi = m.addItemWithTitle_action_keyEquivalent_(f"Hold {self.keyname} to talk", None, "")
         m.addItemWithTitle_action_keyEquivalent_("Tap it once for hands-free · Esc cancels", None, "")
         m.addItem_(NSMenuItem.separatorItem())
         self.clean_mi = m.addItemWithTitle_action_keyEquivalent_("Clean up text (Claude)", "toggleCleanup:", "")
@@ -593,13 +605,27 @@ class Controller(NSObject):
 
     @objc.python_method
     def set_shortcut(self, value):
-        codes = shortcut_codes(value)
-        self.sc_codes = codes
-        self.sc_mask = sum(MOD_BITS[c] for c in codes if c in MOD_BITS)
-        keys = [KEY_CODES[c] for c in codes if c in KEY_CODES]
-        self.sc_key = keys[0] if keys else None
-        self.keyname = shortcut_label(codes)
-        self.key_down = False
+        """Any number of shortcuts; each one works on its own (e.g. fn on the Mac, two keys on a Logitech)."""
+        self.shortcuts = []
+        for codes in shortcut_list(value):
+            keys = [KEY_CODES[c] for c in codes if c in KEY_CODES]
+            self.shortcuts.append({"codes": codes, "label": shortcut_label(codes),
+                                   "mask": sum(MOD_BITS[c] for c in codes if c in MOD_BITS),
+                                   "key": keys[0] if keys else None})
+        # with several, a longer combo wins over a shorter one it contains
+        self.shortcuts.sort(key=lambda s: -bin(s["mask"]).count("1"))
+        self.sc_keys = {s["key"] for s in self.shortcuts if s["key"] is not None}
+        self.keyname = " or ".join(s["label"] for s in sorted(self.shortcuts, key=lambda s: s["label"] != "fn"))
+        self.active = None
+        if getattr(self, "hold_mi", None) is not None:
+            self.hold_mi.setTitle_(f"Hold {self.keyname} to talk")
+
+    @objc.python_method
+    def match_key(self, keycode, flags):
+        for s in self.shortcuts:
+            if s["key"] == keycode and (flags & s["mask"]) == s["mask"]:
+                return s
+        return None
 
     @objc.python_method
     def install_monitors(self):
@@ -615,7 +641,7 @@ class Controller(NSObject):
     @objc.python_method
     def start_recording_shortcut(self):
         self.rec = {"held": set(), "key": None, "key_up": False, "best": []}
-        self.key_down = False
+        self.active = None
 
     @objc.python_method
     def record_event(self, kind, event):
@@ -651,10 +677,13 @@ class Controller(NSObject):
 
     @objc.python_method
     def finish_recording(self, codes):
-        save_config(hotkey=codes)
-        self.set_shortcut(codes)
-        log(f"✓ New shortcut: {self.keyname}")
-        self.send_web({"type": "recordDone", "label": self.keyname})
+        lst = shortcut_list(CFG.get("hotkey", "fn"))      # a recorded shortcut is ADDED to the list
+        if codes not in lst:
+            lst.append(codes)
+        save_config(hotkey=lst)
+        self.set_shortcut(lst)
+        log(f"✓ Added shortcut: {shortcut_label(codes)} (now: {self.keyname})")
+        self.send_web({"type": "recordDone", "label": shortcut_label(codes)})
         self.reload_dashboard()
 
     @objc.python_method
@@ -673,23 +702,24 @@ class Controller(NSObject):
                 return None if kind != Quartz.kCGEventFlagsChanged else event
             if kind == Quartz.kCGEventFlagsChanged:
                 return event
-            if self.sc_key is None or time.time() < PASTE_GUARD[0]:
+            if not self.sc_keys or time.time() < PASTE_GUARD[0]:
                 return event
             code = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode)
-            if code != self.sc_key:
+            if code not in self.sc_keys:
                 return event
+            act = self.active
             if kind == Quartz.kCGEventKeyDown:
-                held = (Quartz.CGEventGetFlags(event) & self.sc_mask) == self.sc_mask
-                if self.key_down:
-                    return None                       # swallow auto-repeat while held
-                if not held:
+                if act is not None:
+                    return None if act["key"] == code else event   # swallow auto-repeat while held
+                s = self.match_key(code, Quartz.CGEventGetFlags(event))
+                if s is None:
                     return event                      # the key pressed without its modifiers: type normally
                 if not Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventAutorepeat):
-                    self.key_down = True
+                    self.active = s
                     AppHelper.callAfter(self.hotkey_down)
                 return None
-            if kind == Quartz.kCGEventKeyUp and self.key_down:
-                self.key_down = False
+            if kind == Quartz.kCGEventKeyUp and act is not None and act["key"] == code:
+                self.active = None
                 AppHelper.callAfter(self.hotkey_up)
                 return None
             return event
@@ -738,32 +768,32 @@ class Controller(NSObject):
     def on_flags(self, ev):
         if time.time() < PASTE_GUARD[0] or self.rec is not None:
             return
-        held = (ev.modifierFlags() & self.sc_mask) == self.sc_mask
-        if self.sc_key is not None:          # modifiers + a key: releasing a modifier ends it
-            if self.key_down and not held:
-                self.key_down = False
+        flags = ev.modifierFlags()
+        act = self.active
+        if act is not None:                  # releasing any key of the held shortcut ends it
+            if (flags & act["mask"]) != act["mask"]:
+                self.active = None
                 self.hotkey_up()
             return
-        down = held
-        if down and not self.key_down:
-            self.key_down = True
-            self.hotkey_down()
-        elif not down and self.key_down:
-            self.key_down = False
-            self.hotkey_up()
+        for s in self.shortcuts:             # modifier-only shortcuts (fn, Right ⌘ + Right ⌥ …)
+            if s["key"] is None and s["mask"] and (flags & s["mask"]) == s["mask"]:
+                self.active = s
+                self.hotkey_down()
+                return
 
     @objc.python_method
     def on_key(self, ev):
         if time.time() < PASTE_GUARD[0] or self.rec is not None:
             return
-        if self.sc_key is not None and ev.keyCode() == self.sc_key:
+        if ev.keyCode() in self.sc_keys:
             if getattr(self, "tap_ok", False):
                 return                              # handled (and swallowed) by the event tap
-            if not ev.isARepeat() and not self.key_down and \
-                    (ev.modifierFlags() & self.sc_mask) == self.sc_mask:
-                self.key_down = True
-                self.hotkey_down()
-            return
+            s = self.match_key(ev.keyCode(), ev.modifierFlags())
+            if s is not None:
+                if not ev.isARepeat() and self.active is None:
+                    self.active = s
+                    self.hotkey_down()
+                return
         if self.state not in ("recording", "locked"):
             return
         if ev.keyCode() == ESC:
@@ -775,8 +805,8 @@ class Controller(NSObject):
     def on_key_up(self, ev):
         if getattr(self, "tap_ok", False):
             return
-        if self.sc_key is not None and ev.keyCode() == self.sc_key and self.key_down:
-            self.key_down = False
+        if self.active is not None and ev.keyCode() == self.active["key"]:
+            self.active = None
             self.hotkey_up()
 
     @objc.python_method
@@ -862,9 +892,13 @@ class Controller(NSObject):
             self.dict = d
         self.view.set_text("")
         try:
-            self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
-                                         blocksize=800, callback=self._audio_cb)
-            self.stream.start()
+            try:
+                self.open_mic()
+            except Exception as e:
+                log(f"Microphone error ({e}); refreshing the microphone list and trying again")
+                sd._terminate()
+                sd._initialize()
+                self.open_mic()
         except Exception as e:
             log(f"Microphone error: {e}")
             self.dict = None
@@ -877,6 +911,12 @@ class Controller(NSObject):
         self.state = "recording"
         play("Tink")
         log("● recording…")
+
+    @objc.python_method
+    def open_mic(self):
+        self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32",
+                                     blocksize=800, callback=self._audio_cb)
+        self.stream.start()
 
     @objc.python_method
     def _close_stream(self):
@@ -1052,7 +1092,8 @@ class Controller(NSObject):
             "stats": load_stats(),
             "keys": {k: (keys[k][-4:] if keys.get(k) else "") for k in ("elevenlabs", "anthropic")},
             "settings": {
-                "hotkey": shortcut_codes(CFG.get("hotkey", "fn")), "hotkey_label": self.keyname,
+                "hotkey": shortcut_list(CFG.get("hotkey", "fn")), "hotkey_label": self.keyname,
+                "hotkey_labels": [shortcut_label(c) for c in shortcut_list(CFG.get("hotkey", "fn"))],
                 "live": CFG.get("live", True),
                 "cleanup": CFG.get("cleanup", True), "polish_after_live": CFG.get("polish_after_live", False),
                 "sounds": CFG.get("sounds", True), "login": LAUNCH_AGENT.exists(),
@@ -1102,7 +1143,7 @@ class Controller(NSObject):
                 st["vocabulary"] = [str(v).strip() for v in st["vocabulary"] if str(v).strip()]
             save_config(**st)
             if "hotkey" in st:
-                st["hotkey"] = shortcut_codes(st["hotkey"])
+                st["hotkey"] = shortcut_list(st["hotkey"])
                 save_config(hotkey=st["hotkey"])
                 self.set_shortcut(st["hotkey"])
                 self.reload_dashboard()
